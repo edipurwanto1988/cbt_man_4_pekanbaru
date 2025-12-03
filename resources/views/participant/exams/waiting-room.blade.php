@@ -128,10 +128,10 @@
                                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4" id="participants-grid">
                                         @foreach($participants as $participant)
                                             <div class="text-center participant-item transform transition-all duration-300 hover:scale-105" data-nisn="{{ $participant->nisn }}">
-                                                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-purple-100 to-indigo-200 dark:from-purple-900 dark:to-indigo-900 mb-2 overflow-hidden shadow-md border-2 border-white dark:border-gray-700">
-                                                    <img src="{{ $participant->avatar_url }}"
+                                                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-purple-100 to-indigo-200 dark:from-purple-900 dark:to-indigo-900 mb-2 overflow-hidden shadow-md border-2 border-white dark:border-gray-700 animate-bounce">
+                                                    <img src="{{ 'https://api.dicebear.com/7.x/big-ears/svg?seed=' . urlencode($participant->siswa->nama_siswa ?? 'Unknown')  }}"
                                                          alt="{{ $participant->siswa->nama_siswa ?? 'Avatar' }}"
-                                                         class="w-full h-full object-cover participant-avatar"
+                                                         class="w-full h-full object-cover participant-avatar "
                                                          onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($participant->siswa->nama_siswa ?? 'User') }}&background=8B5CF6&color=ffffff&size=64'">
                                                 </div>
                                                 <p class="text-sm font-medium text-gray-900 dark:text-white truncate participant-name">
@@ -540,37 +540,37 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Start exam immediately
     if (startExamBtn) {
-        startExamBtn.addEventListener('click', function() {
-            fetch(`{{ route('guru.jadwal-ujian.start', $bankSoal->id) }}`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showTeacherFeedback('Ujian telah dimulai!', 'success');
-                    startExamBtn.disabled = true;
-                    startCountdownBtn.disabled = true;
-                    startExamBtn.innerHTML = '<i class="ri-check-line mr-2"></i> Ujian Dimulai';
-                } else {
-                    showTeacherFeedback(data.error || 'Gagal memulai ujian', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error starting exam:', error);
-                showTeacherFeedback('Terjadi kesalahan, coba lagi', 'error');
-            });
+    startExamBtn.addEventListener('click', function() {
+        fetch(`participant/exams/start/{{ $bankSoal->id }}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showTeacherFeedback('Ujian telah dimulai!', 'success');
+                startExamBtn.disabled = true;
+                startCountdownBtn.disabled = true;
+                startExamBtn.innerHTML = '<i class="ri-check-line mr-2"></i> Ujian Dimulai';
+            } else {
+                showTeacherFeedback(data.error || 'Gagal memulai ujian', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error starting exam:', error);
+            showTeacherFeedback('Terjadi kesalahan, coba lagi', 'error');
         });
-    }
-    
+    });
+}
+
     // Start countdown
     if (startCountdownBtn) {
         startCountdownBtn.addEventListener('click', function() {
-            fetch(`{{ route('guru.jadwal-ujian.start-countdown', $bankSoal->id) }}`, {
+            fetch(`{{ route('participant.exams.start-countdown', $bankSoal->id) }}`, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',

@@ -177,16 +177,24 @@ Route::prefix('participant')->name('participant.')->group(function () {
         Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');
         Route::get('/exams/start/{bankSoalId}', [ExamController::class, 'start'])->name('exams.start');
         Route::get('/exams/take/{bankSoalId}', [ExamController::class, 'take'])->name('exams.take');
+        Route::get('/exams/start-countdown/{bankSoalId}', [ExamController::class, 'startCountdown'])->name('exams.start-countdown');
         Route::get('/exams/waiting-room/{bankSoalId}/participants', [ExamController::class, 'getWaitingRoomParticipants'])->name('exams.waiting-room.participants');
         Route::get('/exams/waiting-room/{bankSoalId}/status', [ExamController::class, 'checkPretestSessionStatus'])->name('exams.waiting-room.status');
         Route::post('/exams/waiting-room/{bankSoalId}/nickname', [ExamController::class, 'submitNickname'])->name('exams.waiting-room.nickname');
         Route::get('/exams/take-live/{sessionId}', [ExamController::class, 'takeLive'])->name('exams.take-live');
         Route::get('/exams/take-live/{sessionId}/question', [ExamController::class, 'getCurrentLiveQuestion'])->name('exams.take-live.question');
         Route::post('/exams/submit-answer/{sessionId}', [ExamController::class, 'submitAnswer'])->name('exams.submit-answer');
+        
         Route::post('/exams/submit-posttest/{bankSoalId}', [ExamController::class, 'submitPosttest'])->name('exams.submitPosttest');
         Route::post('/exams/save-duration/{bankSoalId}', [ExamController::class, 'saveDuration'])->name('exams.saveDuration');
         Route::post('/exams/auto-save-answer/{bankSoalId}', [ExamController::class, 'autoSaveAnswer'])->name('exams.autoSaveAnswer');
+        Route::post('/exams/cheat/{bankSoalId}', [ExamController::class, 'cheat'])->name('exams.cheat');
         Route::post('/exams/update-remaining-time/{bankSoalId}', [ExamController::class, 'updateRemainingTime'])->name('exams.updateRemainingTime');
+
+
+        // End page and results
+        Route::get('/exams/{bankSoalId}', [ExamController::class, 'showResult'])->name('exams.result');
+    
     });
 });
 

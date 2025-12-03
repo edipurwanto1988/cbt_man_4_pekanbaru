@@ -32,7 +32,7 @@ class JadwalUjianController extends Controller
             ->orWhere('pengawas_id', $guruId)
             ->with(['tahunAjaran', 'mataPelajaran', 'creator', 'pengawas'])
             ->get();
-
+        // dd($bankSoals);
         return view('guru.jadwal_ujian.index', compact('bankSoals', 'tahunAjarans'));
     }
 
@@ -219,7 +219,7 @@ class JadwalUjianController extends Controller
         if ($request->status === 'running' && $oldStatus !== 'running') {
             // Update all participants status to active
             PretestPeserta::where('session_id', $session->id)
-                ->update(['status' => 'active']);
+                ->update(['status' => 'aktif']);
 
             // Activate the first question timer
             $firstQuestion = PretestSoalTimer::where('session_id', $session->id)
@@ -294,8 +294,7 @@ class JadwalUjianController extends Controller
             $session->save();
 
             // Update all participants status to active
-            PretestPeserta::where('session_id', $session->id)
-                ->update(['status' => 'active']);
+            PretestPeserta::where('session_id', $session->id);
 
             // Activate the first question timer
             $firstQuestion = PretestSoalTimer::where('session_id', $session->id)
@@ -349,7 +348,7 @@ class JadwalUjianController extends Controller
         try {
             // Update all participants status to active
             PosttestPeserta::where('bank_soal_id', $bankSoal->id)
-                ->update(['status' => 'active', 'start_time' => now()]);
+                ->update(['start_time' => now()]);
 
             DB::commit();
 
@@ -817,7 +816,7 @@ class JadwalUjianController extends Controller
                 // Update all participants status to active
                 PosttestPeserta::where('bank_soal_id', $bankSoal->id)
                     ->where('status', 'waiting')
-                    ->update(['status' => 'active', 'start_time' => now()]);
+                    ->update(['status' => '"Aktif"', 'start_time' => now()]);
                 
                 $message = 'Posttest berhasil dimulai';
             } else if ($request->action === 'finish') {

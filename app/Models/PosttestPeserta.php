@@ -17,6 +17,7 @@ class PosttestPeserta extends Model
         'start_time',
         'end_time',
         'sisa_detik',
+        'cheat_status',
         'status',
     ];
 

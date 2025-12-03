@@ -81,9 +81,9 @@
                     <div id="participantsList" class="space-y-3 max-h-96 overflow-y-auto">
                         @foreach($participants as $participant)
                             <div class="flex items-center gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                                <img src="{{ $participant->siswa->foto ? asset('storage/uploads/siswa/' . $participant->siswa->foto) : 'https://ui-avatars.com/api/?name=' . urlencode($participant->siswa->nama_siswa ?? 'Unknown') . '&background=6366f1&color=ffffff&size=48' }}" 
+                                <img src="{{ 'https://api.dicebear.com/7.x/big-ears/svg?seed=' . urlencode($participant->siswa->nama_siswa ?? 'Unknown')  }}" 
                                      alt="{{ $participant->siswa->nama_siswa }}"
-                                     class="w-10 h-10 rounded-full border-2 border-white shadow-md"
+                                     class="w-10 h-10 rounded-full border-2 border-white shadow-md animate-bounce"
                                      onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($participant->siswa->nama_siswa ?? 'Unknown') }}&background=6366f1&color=ffffff&size=48'">
                                 <div class="flex-1">
                                     <p class="font-medium text-gray-800 dark:text-white">{{ $participant->siswa->nama_siswa }}</p>
@@ -338,9 +338,9 @@
         if (participants && participants.length > 0) {
             participantsList.innerHTML = participants.map(participant => `
                 <div class="flex items-center gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                    <img src="${participant.avatar_url}" 
+                    <img src="https://api.dicebear.com/7.x/big-ears/svg?seed=${participant.nama_siswa}"
                          alt="${participant.nama_siswa}"
-                         class="w-10 h-10 rounded-full border-2 border-white shadow-md"
+                         class="w-10 h-10 rounded-full border-2 border-white shadow-md animate-bounce"
                          onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(participant.nama_siswa)}&background=6366f1&color=ffffff&size=48'">
                     <div class="flex-1">
                         <p class="font-medium text-gray-800 dark:text-white">${participant.nama_siswa}</p>

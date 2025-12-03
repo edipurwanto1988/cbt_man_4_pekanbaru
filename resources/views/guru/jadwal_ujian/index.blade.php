@@ -135,10 +135,10 @@
                                 </div>
                             </td>
                             <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                {{ $item->tahun_ajaran }}
+                                {{ $item->tahunAjaran->tahun_ajaran }}
                             </td>
                             <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                {{ $item->nama_mapel }}
+                                {{ $item->mataPelajaran->nama_mapel }}
                             </td>
                             <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                 <span class="px-2 py-1 text-xs font-medium 
@@ -166,7 +166,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                {{ $item->nama_pengawas ?? '-' }}
+                                {{ $item->pengawas->nama_guru ?? '-' }}
                             </td>
                             <td class="px-6 py-3 whitespace-nowrap text-sm font-medium text-right">
                                 <div class="flex items-center justify-end gap-2">

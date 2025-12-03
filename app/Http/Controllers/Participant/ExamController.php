@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Participant;
 
 use App\Http\Controllers\Controller;
+use App\Models\PosttestHasil;
 use App\Models\BankSoal;
 use App\Models\BankSoalRombel;
 use App\Models\PretestSession;
@@ -29,7 +30,7 @@ class ExamController extends Controller
         try {
             // Get current logged-in student NISN
             $nisn = Auth::guard('siswa')->user()->nisn;
-            
+
             // Get available bank soals for this student based on their rombel
             $availableExams = DB::table('bank_soals')
                 ->leftJoin('bank_soal_rombel', 'bank_soal_rombel.bank_soal_id', '=', 'bank_soals.id')
@@ -49,13 +50,13 @@ class ExamController extends Controller
                 )
                 ->where('bank_soals.status', 'Aktif')
                 ->where('siswa.nisn', $nisn)
-                ->where(function($query) {
+                ->where(function ($query) {
                     $query->whereNull('bank_soals.tanggal_mulai')
-                          ->orWhere('bank_soals.tanggal_mulai', '<=', now());
+                        ->orWhere('bank_soals.tanggal_mulai', '<=', now());
                 })
-                ->where(function($query) {
+                ->where(function ($query) {
                     $query->whereNull('bank_soals.tanggal_selesai')
-                          ->orWhere('bank_soals.tanggal_selesai', '>=', now());
+                        ->orWhere('bank_soals.tanggal_selesai', '>=', now());
                 })
                 ->distinct()
                 ->get();
@@ -74,7 +75,7 @@ class ExamController extends Controller
             }
 
             return view('participant.exams.index', compact('availableExams'));
-            
+
         } catch (\Exception $e) {
             Log::error('Error in ExamController@index: ' . $e->getMessage());
             return redirect()->route('participant.dashboard')
@@ -90,7 +91,7 @@ class ExamController extends Controller
         try {
             // Get current logged-in student NISN
             $nisn = Auth::guard('siswa')->user()->nisn;
-            
+
             // Verify if this student has access to this exam
             $hasAccess = DB::table('bank_soals')
                 ->leftJoin('bank_soal_rombel', 'bank_soal_rombel.bank_soal_id', '=', 'bank_soals.id')
@@ -125,16 +126,42 @@ class ExamController extends Controller
             $instructionKey = strtolower($bankSoal->type_test) === 'pretest'
                 ? 'Instruksi_Pretest'
                 : 'Instruksi_Posttest';
-            
+
             $instruction = Setting::where('key', $instructionKey)->value('value') ?? '';
 
             return view('participant.exams.start', compact('bankSoal', 'instruction'));
-            
+
         } catch (\Exception $e) {
             return redirect()->route('participant.exams.index')
                 ->with('error', 'Terjadi kesalahan saat memulai ujian: ' . $e->getMessage());
         }
     }
+
+    public function startCountdown(Request $request, $bankSoalId)
+    {
+        $bankSoal = BankSoal::findOrFail($bankSoalId);
+
+        // Check if there's an active session for this bank soal
+        $session = PretestSession::where('bank_soal_id', $bankSoalId)
+            ->where('status', 'waiting')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if (!$session) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada sesi pretest aktif untuk bank soal ini',
+            ], 400);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Countdown dimulai',
+            'session_id' => $session->id,
+            'kode_sesi' => $session->kode_sesi,
+        ]);
+    }
+
 
     /**
      * Take a specific exam
@@ -144,7 +171,7 @@ class ExamController extends Controller
         try {
             // Get current logged-in student NISN
             $nisn = Auth::guard('siswa')->user()->nisn;
-            
+
             // Verify if this student has access to this exam
             $hasAccess = DB::table('bank_soals')
                 ->leftJoin('bank_soal_rombel', 'bank_soal_rombel.bank_soal_id', '=', 'bank_soals.id')
@@ -179,7 +206,7 @@ class ExamController extends Controller
             if (strtolower($bankSoal->type_test) === 'pretest') {
                 // Get or create pretest session
                 $pretestSession = PretestSession::where('bank_soal_id', $bankSoalId)->first();
-                
+
                 if (!$pretestSession) {
                     return redirect()->route('participant.exams.index')
                         ->with('error', 'Sesi pretest belum dimulai oleh guru');
@@ -211,7 +238,7 @@ class ExamController extends Controller
 
                 return view('participant.exams.waiting-room', compact('bankSoal', 'pretestSession', 'participants'));
             }
-            
+
             // If it's a posttest, check if participant exists and create if needed
             if (strtolower($bankSoal->type_test) === 'posttest') {
                 // Check if participant already exists
@@ -229,7 +256,7 @@ class ExamController extends Controller
                         'sisa_detik' => $initialSisaDetik,
                         'status' => 'ongoing',
                     ]);
-                    
+
                     // Set remaining time to initial value
                     $remainingTime = $initialSisaDetik;
                 } else {
@@ -238,26 +265,26 @@ class ExamController extends Controller
                         return redirect()->route('participant.exams.index')
                             ->with('error', 'Ujian sudah selesai');
                     }
-                    
+
                     // Set remaining time from participant data
                     $remainingTime = $participant->sisa_detik;
                 }
 
                 // Get all questions for this bank soal
                 $questions = $bankSoal->pertanyaanSoals()->with('jawabanSoals')->get();
-                
+                // dd($questions);
                 if ($questions->isEmpty()) {
                     return redirect()->route('participant.exams.index')
                         ->with('error', 'Tidak ada soal yang tersedia untuk ujian ini');
                 }
 
-                return view('participant.exams.posttest', compact('bankSoal', 'questions', 'remainingTime'));
+                return view('participant.exams.posttest', compact('bankSoal', 'questions', 'remainingTime', 'participant'));
             }
 
             // For other exam types, redirect back with a message that the exam functionality is being developed
             return redirect()->route('participant.exams.index')
                 ->with('success', 'Ujian akan segera dimulai. Fitur ujian sedang dalam pengembangan.');
-            
+
         } catch (\Exception $e) {
             return redirect()->route('participant.exams.index')
                 ->with('error', 'Terjadi kesalahan saat mengambil ujian: ' . $e->getMessage());
@@ -272,7 +299,7 @@ class ExamController extends Controller
         try {
             // Get current logged-in student NISN
             $nisn = Auth::guard('siswa')->user()->nisn;
-            
+
             // Verify if this student has access to this exam
             $hasAccess = DB::table('bank_soals')
                 ->leftJoin('bank_soal_rombel', 'bank_soal_rombel.bank_soal_id', '=', 'bank_soals.id')
@@ -289,7 +316,7 @@ class ExamController extends Controller
 
             // Get pretest session
             $pretestSession = PretestSession::where('bank_soal_id', $bankSoalId)->first();
-            
+
             if (!$pretestSession) {
                 return response()->json(['error' => 'Sesi pretest tidak ditemukan'], 404);
             }
@@ -329,7 +356,7 @@ class ExamController extends Controller
         try {
             // Get current logged-in student NISN
             $nisn = Auth::guard('siswa')->user()->nisn;
-            
+
             // Verify if this student has access to this exam
             $hasAccess = DB::table('bank_soals')
                 ->leftJoin('bank_soal_rombel', 'bank_soal_rombel.bank_soal_id', '=', 'bank_soals.id')
@@ -346,7 +373,7 @@ class ExamController extends Controller
 
             // Get pretest session
             $pretestSession = PretestSession::where('bank_soal_id', $bankSoalId)->first();
-            
+
             if (!$pretestSession) {
                 return response()->json([
                     'success' => true,
@@ -363,20 +390,20 @@ class ExamController extends Controller
                     $currentQuestion = DB::table('pertanyaan_soals')
                         ->where('id', $pretestSession->soal_aktif_id)
                         ->first();
-                    
+
                     if ($currentQuestion) {
                         // Get answers for this question
                         $answers = DB::table('jawaban_soals')
                             ->where('pertanyaan_id', $currentQuestion->id)
                             ->orderBy('opsi')
                             ->get();
-                        
+
                         // Format answers
                         $formattedAnswers = [];
                         foreach ($answers as $answer) {
                             $formattedAnswers[$answer->opsi] = $answer->isi_jawaban;
                         }
-                        
+
                         $currentQuestion->answers = $formattedAnswers;
                     }
                 }
@@ -410,15 +437,15 @@ class ExamController extends Controller
         try {
             // Get current logged-in student NISN
             $nisn = Auth::guard('siswa')->user()->nisn;
-            
+
             // Get pretest session
             $pretestSession = PretestSession::with('bankSoal.pertanyaanSoals.jawabanSoals')->findOrFail($sessionId);
-            
+
             // Verify participant exists
             $participant = PretestPeserta::where('session_id', $sessionId)
                 ->where('nisn', $nisn)
                 ->first();
-            
+
             if (!$participant) {
                 return redirect()->route('participant.exams.index')
                     ->with('error', 'Anda tidak terdaftar sebagai peserta dalam sesi ini');
@@ -440,7 +467,7 @@ class ExamController extends Controller
             }
 
             return view('participant.exams.take-live', compact('pretestSession', 'currentQuestion', 'participant'));
-            
+
         } catch (\Exception $e) {
             return redirect()->route('participant.exams.index')
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
@@ -455,15 +482,15 @@ class ExamController extends Controller
         try {
             // Get current logged-in student NISN
             $nisn = Auth::guard('siswa')->user()->nisn;
-            
+
             // Get pretest session
             $pretestSession = PretestSession::with('bankSoal.pertanyaanSoals')->findOrFail($sessionId);
-            
+
             // Verify participant exists
             $participant = PretestPeserta::where('session_id', $sessionId)
                 ->where('nisn', $nisn)
                 ->first();
-            
+
             if (!$participant) {
                 return response()->json(['error' => 'Anda tidak terdaftar sebagai peserta'], 403);
             }
@@ -484,7 +511,7 @@ class ExamController extends Controller
                 foreach ($currentQuestion->jawabanSoals as $jawaban) {
                     $answers[$jawaban->opsi] = $jawaban->isi_jawaban;
                 }
-                
+
                 $questionData = [
                     'id' => $currentQuestion->id,
                     'pertanyaan' => $currentQuestion->pertanyaan,
@@ -518,15 +545,15 @@ class ExamController extends Controller
         try {
             // Get current logged-in student NISN
             $nisn = Auth::guard('siswa')->user()->nisn;
-            
+
             // Get pretest session
             $pretestSession = PretestSession::findOrFail($sessionId);
-            
+
             // Verify participant exists
             $participant = PretestPeserta::where('session_id', $sessionId)
                 ->where('nisn', $nisn)
                 ->first();
-            
+
             if (!$participant) {
                 return response()->json(['error' => 'Anda tidak terdaftar sebagai peserta'], 403);
             }
@@ -536,13 +563,13 @@ class ExamController extends Controller
             $rules = [
                 'time_taken' => 'nullable|numeric|min:0'
             ];
-            
+
             if (!$isTimeout) {
                 $rules['answer'] = 'required|string|in:A,B,C,D,E';
             } else {
                 $rules['answer'] = 'nullable|string';
             }
-            
+
             $request->validate($rules);
 
             // Get current question
@@ -570,18 +597,18 @@ class ExamController extends Controller
             $answer = $request->answer;
             $isCorrect = !$isTimeout && $correctAnswer && $correctAnswer->opsi === $answer;
             $baseScore = $isCorrect ? 1 : 0;
-            
+
             // Calculate time-based bonus
             $bonusScore = 0;
             $timeTaken = $request->time_taken ?? 0;
             $maxTime = $pretestSession->bankSoal->max_time ?? 30; // Default 30 seconds if not set
-            
+
             if ($isCorrect && $timeTaken > 0 && $maxTime > 0) {
                 // Formula: final_bonus = round((total_waktu - total_time_answered) / total_waktu * 1000)
                 $bonusScore = round(($maxTime - $timeTaken) / $maxTime * 1000);
                 $bonusScore = max(0, $bonusScore); // Ensure bonus is not negative
             }
-            
+
             // Total score = base score + bonus score
             $totalScore = $baseScore + $bonusScore;
 
@@ -617,86 +644,102 @@ class ExamController extends Controller
      * Submit posttest exam
      */
     public function submitPosttest($bankSoalId, Request $request)
-    {
-        try {
-            // Get current logged-in student NISN
-            $nisn = Auth::guard('siswa')->user()->nisn;
-            
-            // Get bank soal
-            $bankSoal = BankSoal::with('pertanyaanSoals.jawabanSoals')->findOrFail($bankSoalId);
-            
-            // Verify participant exists
-            $participant = PosttestPeserta::where('bank_soal_id', $bankSoalId)
-                ->where('nisn', $nisn)
-                ->first();
-            
-            if (!$participant) {
-                return redirect()->route('participant.exams.index')
-                    ->with('error', 'Anda tidak terdaftar sebagai peserta dalam ujian ini');
-            }
-            
-            // Get answers and durations from request
-            $answers = json_decode($request->answers, true) ?: [];
-            $durations = json_decode($request->durations, true) ?: [];
-            
-            if (empty($answers)) {
-                return redirect()->route('participant.exams.index')
-                    ->with('error', 'Tidak ada jawaban yang disimpan');
-            }
-            
-            // Calculate score and save logs
-            $totalQuestions = $bankSoal->pertanyaanSoals->count();
-            $correctAnswers = 0;
-            $totalScore = 0;
-            
-            foreach ($answers as $questionId => $selectedOption) {
-                // Get the correct answer for this question
-                $correctAnswer = DB::table('jawaban_soals')
-                    ->where('pertanyaan_id', $questionId)
-                    ->where('is_benar', true)
-                    ->first();
-                
-                $isCorrect = $correctAnswer && $correctAnswer->opsi === $selectedOption;
-                
-                if ($isCorrect) {
-                    $correctAnswers++;
-                    // Calculate score for this question (assuming each question has equal weight)
-                    $questionScore = 100 / $totalQuestions;
-                    $totalScore += $questionScore;
-                }
-                
-                // Get duration for this question (default to 0 if not available)
-                $duration = isset($durations[$questionId]) ? intval($durations[$questionId]) : 0;
-                
-                // Save to posttest log
-                PosttestLog::create([
-                    'nisn' => $nisn,
-                    'bank_soal_id' => $bankSoalId,
-                    'pertanyaan_id' => $questionId,
-                    'jawaban_pilihan' => $selectedOption,
-                    'jawaban_benar_salah' => $isCorrect ? 1 : 0,
-                    'jawaban_esai' => null, // Can be filled with essay answer if needed
-                    'skor' => $isCorrect ? (100 / $totalQuestions) : 0,
-                    'is_benar' => $isCorrect ? 1 : 0,
-                    'durasi_detik' => $duration,
-                ]);
-            }
-            
-            // Calculate final score percentage
-            $scorePercentage = $totalScore;
-            
-            // Update participant score
-            $participant->poin = $scorePercentage;
-            $participant->save();
-            
+{
+    try {
+        // Logged student
+        $nisn = Auth::guard('siswa')->user()->nisn;
+
+        // Get bank soal with questions
+        $bankSoal = BankSoal::with('pertanyaanSoals.jawabanSoals')->findOrFail($bankSoalId);
+
+        // Verify the student is registered as participant (PosttestPeserta table)
+        $registered = PosttestPeserta::where('bank_soal_id', $bankSoalId)
+            ->where('nisn', $nisn)
+            ->exists();
+
+        if (! $registered) {
             return redirect()->route('participant.exams.index')
-                ->with('success', 'Ujian selesai! Skor Anda: ' . number_format($scorePercentage, 2) . '%');
-            
-        } catch (\Exception $e) {
-            return redirect()->route('participant.exams.index')
-                ->with('error', 'Terjadi kesalahan saat menyelesaikan ujian: ' . $e->getMessage());
+                ->with('error', 'Anda tidak terdaftar sebagai peserta dalam ujian ini');
         }
+
+        // Get answers and durations
+        $answers = json_decode($request->answers, true) ?: [];
+        $durations = json_decode($request->durations, true) ?: [];
+
+        if (empty($answers)) {
+            return redirect()->route('participant.exams.index')
+                ->with('error', 'Tidak ada jawaban yang disimpan');
+        }
+
+        DB::beginTransaction();
+
+        // Counting results & saving logs
+        $totalQuestions = $bankSoal->pertanyaanSoals->count();
+        $correct = 0;
+        $totalScore = 0;
+        $totalDurationSeconds = 0;
+
+        foreach ($answers as $questionId => $selectedOption) {
+            $correctAnswer = DB::table('jawaban_soals')
+                ->where('pertanyaan_id', $questionId)
+                ->where('is_benar', true)
+                ->first();
+
+            $isCorrect = $correctAnswer && $correctAnswer->opsi === $selectedOption;
+
+            if ($isCorrect) {
+                $correct++;
+                $totalScore += (100 / max(1, $totalQuestions));
+            }
+
+            $duration = isset($durations[$questionId]) ? intval($durations[$questionId]) : 0;
+            $totalDurationSeconds += $duration;
+
+            // Save per-question log
+            PosttestLog::create([
+                'nisn' => $nisn,
+                'bank_soal_id' => $bankSoalId,
+                'pertanyaan_id' => $questionId,
+                'jawaban_pilihan' => $selectedOption,
+                'jawaban_benar_salah' => $isCorrect ? 1 : 0,
+                'jawaban_esai' => null,
+                'skor' => $isCorrect ? (100 / max(1, $totalQuestions)) : 0,
+                'is_benar' => $isCorrect ? 1 : 0,
+                'durasi_detik' => $duration,
+            ]);
+        }
+
+        $finalScore = $totalScore;
+        $totalWrong = $totalQuestions - $correct;
+        $totalEmpty = 0; // if you want to calculate unanswered separately, adjust logic above
+
+        // Create PostTestHasil record (or update if exists)
+        $postTestHasil = PostTestHasil::firstOrNew(
+            ['bank_soal_id' => $bankSoalId, 'nisn' => $nisn]
+        );
+
+        $postTestHasil->bank_soal_id = $bankSoalId;
+        $postTestHasil->nisn = $nisn;
+        $postTestHasil->total_benar = $correct;
+        $postTestHasil->total_salah = $totalWrong;
+        $postTestHasil->total_kosong = $totalEmpty;
+        $postTestHasil->nilai_akhir = $finalScore;
+        $postTestHasil->waktu_pengerjaan = $totalDurationSeconds;
+        $postTestHasil->save();
+
+        DB::commit();
+
+        return redirect()->route('participant.exams.index')
+            ->with('success', 'Ujian selesai! Skor Anda: ' . number_format($finalScore, 2) . '%');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return redirect()->route('participant.exams.index')
+            ->with('error', 'Terjadi kesalahan saat menyelesaikan ujian: ' . $e->getMessage());
     }
+}
+
+
 
     /**
      * Save duration data for posttest
@@ -706,19 +749,19 @@ class ExamController extends Controller
         try {
             // Get current logged-in student NISN
             $nisn = Auth::guard('siswa')->user()->nisn;
-            
+
             // Verify participant exists
             $participant = PosttestPeserta::where('bank_soal_id', $bankSoalId)
                 ->where('nisn', $nisn)
                 ->first();
-            
+
             if (!$participant) {
                 return response()->json(['error' => 'Anda tidak terdaftar sebagai peserta'], 403);
             }
-            
+
             // Get durations from request
             $durations = $request->durations ?: [];
-            
+
             // Update or create posttest logs with duration data
             foreach ($durations as $questionId => $duration) {
                 // Check if log already exists for this question
@@ -726,7 +769,7 @@ class ExamController extends Controller
                     ->where('bank_soal_id', $bankSoalId)
                     ->where('pertanyaan_id', $questionId)
                     ->first();
-                
+
                 if ($existingLog) {
                     // Update existing log with duration
                     $existingLog->durasi_detik = $duration;
@@ -746,12 +789,12 @@ class ExamController extends Controller
                     ]);
                 }
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Data durasi berhasil disimpan'
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json(['error' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);
         }
@@ -760,55 +803,91 @@ class ExamController extends Controller
     /**
      * Auto save answer for posttest
      */
+
+    public function cheat($bankSoalId, Request $request)
+    {
+
+
+        try {
+            // Get current logged-in student NISN
+            $nisn = Auth::guard('siswa')->user()->nisn;
+
+            // Verify participant exists
+
+
+            $participant = PosttestPeserta::where('bank_soal_id', $bankSoalId)
+                ->where('nisn', $nisn)->first();
+
+
+
+            if (!$participant) {
+                return response()->json(['error' => 'Anda tidak terdaftar sebagai peserta'], 403);
+            }
+
+            $participant->update(attributes: [
+                'cheat_status' => 'blocked'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Anda ketahuan curang',
+                'data' => $participant
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);
+        }
+    }
+
     public function autoSaveAnswer($bankSoalId, Request $request)
     {
         try {
             // Get current logged-in student NISN
             $nisn = Auth::guard('siswa')->user()->nisn;
-            
+
             // Verify participant exists
             $participant = PosttestPeserta::where('bank_soal_id', $bankSoalId)
                 ->where('nisn', $nisn)
                 ->first();
-            
+
             if (!$participant) {
                 return response()->json(['error' => 'Anda tidak terdaftar sebagai peserta'], 403);
             }
-            
+
             // Validate request
             $request->validate([
                 'question_id' => 'required|exists:pertanyaan_soals,id',
                 'answer' => 'nullable|string|in:A,B,C,D,E',
                 'duration' => 'nullable|numeric|min:0'
             ]);
-            
+
             $questionId = $request->question_id;
             $answer = $request->answer;
             $duration = $request->duration ?? 0;
-            
+
             // Get the correct answer for this question
             $correctAnswer = DB::table('jawaban_soals')
                 ->where('pertanyaan_id', $questionId)
                 ->where('is_benar', true)
                 ->first();
-            
+
             // Check if answer is correct
             $isCorrect = $correctAnswer && $correctAnswer->opsi === $answer;
-            
+
             // Calculate score (assuming each question has equal weight)
             $totalQuestions = DB::table('pertanyaan_soals')
                 ->where('bank_soal_id', $bankSoalId)
                 ->count();
-            
+
             $questionScore = $totalQuestions > 0 ? (100 / $totalQuestions) : 0;
             $score = $isCorrect ? $questionScore : 0;
-            
+
             // Check if log already exists for this question
             $existingLog = PosttestLog::where('nisn', $nisn)
                 ->where('bank_soal_id', $bankSoalId)
                 ->where('pertanyaan_id', $questionId)
                 ->first();
-            
+
             if ($existingLog) {
                 // Update existing log
                 $existingLog->jawaban_pilihan = $answer;
@@ -831,14 +910,14 @@ class ExamController extends Controller
                     'durasi_detik' => $duration,
                 ]);
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Jawaban berhasil disimpan',
                 'is_correct' => $isCorrect,
                 'score' => $score
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json(['error' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);
         }
@@ -850,30 +929,30 @@ class ExamController extends Controller
     private function isWithinTimeRange($exam)
     {
         $now = now();
-        
+
         // Check if exam type is posttest
         if (strtolower($exam->type_test) === 'posttest') {
             // Check if both start and end dates are set
             if ($exam->tanggal_mulai && $exam->tanggal_selesai) {
                 $startTime = \Carbon\Carbon::parse($exam->tanggal_mulai);
                 $endTime = \Carbon\Carbon::parse($exam->tanggal_selesai);
-                
+
                 // Check if current time is within the range
                 return $now->between($startTime, $endTime);
             }
-            
+
             // If only start date is set, check if current time is after start time
             if ($exam->tanggal_mulai) {
                 $startTime = \Carbon\Carbon::parse($exam->tanggal_mulai);
                 return $now->gte($startTime);
             }
-            
+
             // If only end date is set, check if current time is before end time
             if ($exam->tanggal_selesai) {
                 $endTime = \Carbon\Carbon::parse($exam->tanggal_selesai);
                 return $now->lte($endTime);
             }
-            
+
             // For non-posttest exams or if no dates are set, return true
             return true;
         }
@@ -887,7 +966,7 @@ class ExamController extends Controller
         try {
             // Get current logged-in student NISN
             $nisn = Auth::guard('siswa')->user()->nisn;
-            
+
             // Verify if this student has access to this exam
             $hasAccess = DB::table('bank_soals')
                 ->leftJoin('bank_soal_rombel', 'bank_soal_rombel.bank_soal_id', '=', 'bank_soals.id')
@@ -897,34 +976,34 @@ class ExamController extends Controller
                 ->where('bank_soals.status', 'Aktif')
                 ->where('rombel_detail.nisn', $nisn)
                 ->exists();
-            
+
             if (!$hasAccess) {
                 return response()->json([
                     'success' => false,
                     'error' => 'Anda tidak memiliki akses ke ujian ini'
                 ], 403);
             }
-            
+
             // Validate request
             $request->validate([
                 'nickname' => 'required|string|min:3|max:15'
             ]);
-            
+
             // Get pretest session
             $pretestSession = PretestSession::where('bank_soal_id', $bankSoalId)->first();
-            
+
             if (!$pretestSession) {
                 return response()->json([
                     'success' => false,
                     'error' => 'Sesi pretest tidak ditemukan'
                 ], 404);
             }
-            
+
             // Get or create participant
             $participant = PretestPeserta::where('session_id', $pretestSession->id)
                 ->where('nisn', $nisn)
                 ->first();
-            
+
             if (!$participant) {
                 // Create new participant
                 $participant = PretestPeserta::create([
@@ -934,17 +1013,17 @@ class ExamController extends Controller
                     'status' => 'waiting',
                 ]);
             }
-            
+
             // Note: The nickname functionality would require adding a nickname field to the PretestPeserta model
             // For now, we'll just update the status to active
             $participant->status = 'active';
             $participant->save();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Nickname berhasil disimpan'
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -961,16 +1040,16 @@ class ExamController extends Controller
         try {
             // Get current logged-in student NISN
             $nisn = Auth::guard('siswa')->user()->nisn;
-            
+
             // Get participant
             $participant = PosttestPeserta::where('bank_soal_id', $bankSoalId)
                 ->where('nisn', $nisn)
                 ->first();
-            
+
             if (!$participant) {
                 return response()->json(['error' => 'Peserta tidak ditemukan'], 404);
             }
-            
+
             // Check if exam is already finished
             if ($participant->status === 'finished') {
                 return response()->json([
@@ -979,54 +1058,96 @@ class ExamController extends Controller
                     'message' => 'Ujian sudah selesai'
                 ]);
             }
-            
+
             // Get remaining time from request if available
             $clientRemainingTime = $request->input('remaining_time');
-            
+
             // Calculate remaining time
             $currentTime = now();
             $startTime = $participant->start_time;
             $durationMinutes = $participant->bankSoal->durasi_menit ?? 60; // Default 60 minutes if not set
-            
+
             // Calculate elapsed time in seconds
             $elapsedSeconds = $currentTime->diffInSeconds($startTime);
-            
+
             // Calculate remaining time in seconds
             $totalDurationSeconds = $durationMinutes * 60;
             $calculatedRemainingSeconds = max(0, $totalDurationSeconds - $elapsedSeconds);
-            
+
             // Use client time if it's valid and close to server calculation (within 5 seconds difference)
             $remainingSeconds = $calculatedRemainingSeconds;
             if ($clientRemainingTime !== null && is_numeric($clientRemainingTime)) {
                 $clientTime = intval($clientRemainingTime);
                 $timeDifference = abs($clientTime - $calculatedRemainingSeconds);
-                
+
                 // Use client time if difference is less than 5 seconds
                 if ($timeDifference < 5) {
                     $remainingSeconds = $clientTime;
                 }
             }
-            
+
             // Update remaining time
             $participant->sisa_detik = $remainingSeconds;
-            
+
             // Check if time is up
             if ($remainingSeconds <= 0) {
                 $participant->status = 'finished';
                 $participant->end_time = now();
             }
-            
+
             $participant->save();
-            
+
             return response()->json([
                 'success' => true,
                 'finished' => $remainingSeconds <= 0,
                 'remaining_time' => $remainingSeconds,
                 'message' => $remainingSeconds <= 0 ? 'Waktu ujian habis' : 'Waktu diperbarui'
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json(['error' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);
         }
     }
+
+    // Optional: Add method to show exam results
+    public function showResult($bankSoalId, )
+    {
+        $examSession = PosttestPeserta::where('bank_soal_id', $bankSoalId)
+            ->where('peserta_id', auth()->id())
+            ->latest()
+            ->first();
+
+        // Check if user owns this exam session
+        if ($examSession->peserta_id !== auth()->id()) {
+            abort(403);
+        }
+
+        return view('participant.exams.result', [
+            'examSession' => $examSession,
+        ]);
+    }
+
+    // Optional: Add feedback method
+    public function storeFeedback(Request $request, $bankSoalId)
+    {
+        $request->validate([
+            'feedback' => 'nullable|string|max:1000',
+        ]);
+
+        $examSession = PosttestPeserta::where('bank_soal_id', $bankSoalId)
+            ->where('peserta_id', auth()->id())
+            ->latest()
+            ->first();
+
+        if ($examSession) {
+            $examSession->update([
+                'feedback' => $request->input('feedback'),
+            ]);
+        }
+
+        return redirect()
+            ->route('participant.exams.index')
+            ->with('success', 'Terima kasih atas feedback Anda!');
+    }
 }
+
