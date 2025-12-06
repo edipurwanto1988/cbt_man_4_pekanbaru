@@ -103,17 +103,19 @@
             <!-- Control Buttons -->
             <div class="mt-4 space-y-3">
                 @if($session->status == 'running')
-                    @if($currentQuestion && $nextQuestion)
-                        <button onclick="nextQuestion()" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-4 px-4 rounded-lg font-medium transition">
-                            <i class="ri-skip-forward-line mr-2"></i> Soal Berikutnya
-                        </button>
-                    @endif
-                    
-                    @if(!$currentQuestion && !$nextQuestion)
-                        <button onclick="endPretest()" class="w-full bg-red-500 hover:bg-red-600 text-white py-4 px-4 rounded-lg font-medium transition">
-                            <i class="ri-stop-circle-line mr-2"></i> Akhiri Pretest
-                        </button>
-                    @endif
+                      @if($nextQuestion)
+        {{-- Masih ada soal berikutnya --}}
+        <button onclick="nextQuestion()" 
+            class="w-full bg-blue-500 hover:bg-blue-600 text-white py-4 px-4 rounded-lg font-medium transition">
+            <i class="ri-skip-forward-line mr-2"></i> Soal Berikutnya
+        </button>
+    @else
+        {{-- Tidak ada soal berikutnya, tampilkan tombol AKHIRI --}}
+        <button onclick="endPretest()" 
+            class="w-full bg-red-500 hover:bg-red-600 text-white py-4 px-4 rounded-lg font-medium transition">
+            <i class="ri-stop-circle-line mr-2"></i> Akhiri Pretest
+        </button>
+    @endif
                 @endif
                 
                 @if($session->status == 'waiting')
@@ -129,8 +131,8 @@
 @push('scripts')
 <script>
     let countdownInterval;
-    let timeLeft = 30;
-    
+    let timeLeft = parseInt({{ $session->bankSoal->max_time ?? 3600 }});
+    console.log(timeLeft) // 3600
     document.addEventListener('DOMContentLoaded', function() {
         // Start countdown if there's an active question
         @if($currentQuestion)
@@ -144,10 +146,9 @@
     });
     
     function startCountdown() {
-        timeLeft = 30;
         updateCountdownDisplay();
         
-        countdownInterval = setInterval(() => {
+        countdownInterval = setInterval(() => {         
             timeLeft--;
             updateCountdownDisplay();
             

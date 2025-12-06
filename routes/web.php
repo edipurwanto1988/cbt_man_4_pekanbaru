@@ -1,5 +1,7 @@
 <?php
 
+
+use App\Http\Controllers\HistoryController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\AdminController;
@@ -17,6 +19,7 @@ use App\Http\Controllers\Guru\BankSoalController as GuruBankSoalController;
 use App\Http\Controllers\Guru\PertanyaanSoalController;
 use App\Http\Controllers\Guru\RombelController as GuruRombelController;
 use App\Http\Controllers\Guru\JadwalUjianController;
+
 
 // Temporary route to create admin user
 Route::get('/create-admin', function() {
@@ -177,12 +180,14 @@ Route::prefix('participant')->name('participant.')->group(function () {
         Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');
         Route::get('/exams/start/{bankSoalId}', [ExamController::class, 'start'])->name('exams.start');
         Route::get('/exams/take/{bankSoalId}', [ExamController::class, 'take'])->name('exams.take');
+        Route::get('/exadms/take/{bankSoalId}', [ExamController::class, 'take'])->name('exams.calculate');
         Route::get('/exams/start-countdown/{bankSoalId}', [ExamController::class, 'startCountdown'])->name('exams.start-countdown');
         Route::get('/exams/waiting-room/{bankSoalId}/participants', [ExamController::class, 'getWaitingRoomParticipants'])->name('exams.waiting-room.participants');
         Route::get('/exams/waiting-room/{bankSoalId}/status', [ExamController::class, 'checkPretestSessionStatus'])->name('exams.waiting-room.status');
         Route::post('/exams/waiting-room/{bankSoalId}/nickname', [ExamController::class, 'submitNickname'])->name('exams.waiting-room.nickname');
         Route::get('/exams/take-live/{sessionId}', [ExamController::class, 'takeLive'])->name('exams.take-live');
         Route::get('/exams/take-live/{sessionId}/question', [ExamController::class, 'getCurrentLiveQuestion'])->name('exams.take-live.question');
+        Route::get('/exams/results/{sessionId}', [ExamController::class, 'resultPage'])->name('exams.result');
         Route::post('/exams/submit-answer/{sessionId}', [ExamController::class, 'submitAnswer'])->name('exams.submit-answer');
         
         Route::post('/exams/submit-posttest/{bankSoalId}', [ExamController::class, 'submitPosttest'])->name('exams.submitPosttest');
@@ -190,6 +195,8 @@ Route::prefix('participant')->name('participant.')->group(function () {
         Route::post('/exams/auto-save-answer/{bankSoalId}', [ExamController::class, 'autoSaveAnswer'])->name('exams.autoSaveAnswer');
         Route::post('/exams/cheat/{bankSoalId}', [ExamController::class, 'cheat'])->name('exams.cheat');
         Route::post('/exams/update-remaining-time/{bankSoalId}', [ExamController::class, 'updateRemainingTime'])->name('exams.updateRemainingTime');
+        Route::get('/history', [ExamController::class, 'history'])
+        ->name('history.index');
 
 
         // End page and results
@@ -272,5 +279,6 @@ Route::prefix('guru')->name('guru.')->group(function () {
         Route::post('jadwal_ujian/update-posttest-time', [JadwalUjianController::class, 'updatePosttestTime'])->name('jadwal_ujian.updatePosttestTime');
         Route::get('jadwal_ujian/posttest/{sessionId}/participants', [JadwalUjianController::class, 'getPosttestParticipants'])->name('jadwal_ujian.posttest.participants');
         Route::post('jadwal_ujian/posttest/{id}/finish', [JadwalUjianController::class, 'finishPosttest'])->name('jadwal_ujian.posttest.finish');
+        Route::post('jadwal_ujian/pretest/{id}/finish', [JadwalUjianController::class, 'finishPretest'])->name('jadwal_ujian.pretest.finish');
     });
 });

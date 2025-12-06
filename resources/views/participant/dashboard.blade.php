@@ -82,9 +82,9 @@
                     <h3 class="text-lg font-semibold text-gray-900">Exam History</h3>
                 </div>
                 <p class="text-gray-600 mb-4">View your previous examination results.</p>
-                <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md font-medium transition-colors w-full">
+                <a href="{{ route('participant.history.index') }}"  class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md font-medium transition-colors w-full inline-block text-center">
                     View History
-                </button>
+                </a>
             </div>
 
             <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">

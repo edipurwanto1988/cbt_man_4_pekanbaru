@@ -1,6 +1,18 @@
 @extends('layouts.participant')
 
 @section('content')
+
+@php
+    use Carbon\Carbon;
+
+    $rawStart = optional($participant)->start_time;
+
+    // jika null → pakai now() dengan format Y-m-d H:i:s
+    $formattedStart = $rawStart
+        ? Carbon::parse($rawStart)->format('Y-m-d H:i:s')
+        : Carbon::now()->format('Y-m-d H:i:s');
+@endphp
+
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
@@ -132,7 +144,7 @@
             </div>
         </div>
     </div>
-    {{ $question->first()->id ?? '' }}
+    
     <form id="exam-form" method="POST" action="{{ route('participant.exams.submitPosttest', $bankSoal->id) }}">
         @csrf
         <input type="hidden" id="current-question-id" name="current_question_id"
@@ -147,25 +159,28 @@
             const questionWithIndex = questions.map((q, index) => ({
                 ...q,
                 index: index + 1
-            }));        
+            }));
             console.log('hai')
-                if (0 === questionWithIndex.length - 1) {
-                    document.getElementById('next-btn').classList.add('hidden');
-                    document.getElementById('finish-btn').classList.remove('hidden');
-                } else {
-                    document.getElementById('next-btn').classList.remove('hidden');
-                    document.getElementById('finish-btn').classList.add('hidden');
-                    document.getElementById('next-btn').disabled = !answers[question.id];
-                }
+           
             let currentQuestionIndex = 0;
             let answers = {};
             let durations = {};
             let timerInterval;
             let saveInterval;
             let updateTimerInterval;
+             if (0 === questionWithIndex.length - 1) {
+                document.getElementById('next-btn').classList.add('hidden');
+                document.getElementById('finish-btn').classList.remove('hidden');
+            } else {
+                document.getElementById('next-btn').classList.remove('hidden');
+                document.getElementById('finish-btn').classList.add('hidden');
+                
+            }
             const startTime = Date.now();
             const examDuration = {{ $bankSoal->durasi_menit ?? 60 }}; // in minutes
-            const examStartTime = "{{ $participant->start_time }}"; // "2025-12-03 12:00:37"
+            const examStartTime = "{{ $formattedStart }}";
+            console.log(examStartTime);
+
             const bankSoalId = {{ $bankSoal->id }};
 
             const startTimestamp = new Date(examStartTime.replace(/-/g, '/')).getTime();
@@ -292,29 +307,29 @@
                 // Update question content
                 const questionContainer = document.getElementById('question-container');
                 questionContainer.innerHTML = `
-                        <div class="question-content" data-question-id="${question.id}">
-                            <div class="mb-6">
-                                <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                                    Soal ${index + 1}
-                                </h4>
-                                <div class="prose prose-sm max-w-none text-gray-700 dark:text-gray-300">
-                                    ${question.pertanyaan}
-                                </div>
-                            </div>
-
-                            <div class="space-y-3">
-                                ${question.jawaban_soals.map(answer => `
-                                    <label class="answer-option flex items-start p-4 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
-                                        <input type="radio" name="answer" value="${answer.opsi}" class="mt-1 mr-3" ${answers[question.id] === answer.opsi ? 'checked' : ''}>
-                                        <div class="flex-1">
-                                            <span class="font-medium text-gray-900 dark:text-white">${answer.opsi}.</span>
-                                            <span class="ml-2 text-gray-700 dark:text-gray-300">${answer.isi_jawaban}</span>
+                                    <div class="question-content" data-question-id="${question.id}">
+                                        <div class="mb-6">
+                                            <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                                                Soal ${index + 1}
+                                            </h4>
+                                            <div class="prose prose-sm max-w-none text-gray-700 dark:text-gray-300">
+                                                ${question.pertanyaan}
+                                            </div>
                                         </div>
-                                    </label>
-                                `).join('')}
-                            </div>
-                        </div>
-                    `;
+
+                                        <div class="space-y-3">
+                                            ${question.jawaban_soals.map(answer => `
+                                                <label class="answer-option flex items-start p-4 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
+                                                    <input type="radio" name="answer" value="${answer.opsi}" class="mt-1 mr-3" ${answers[question.id] === answer.opsi ? 'checked' : ''}>
+                                                    <div class="flex-1">
+                                                        <span class="font-medium text-gray-900 dark:text-white">${answer.opsi}.</span>
+                                                        <span class="ml-2 text-gray-700 dark:text-gray-300">${answer.isi_jawaban}</span>
+                                                    </div>
+                                                </label>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                `;
 
                 // Re-attach answer change handler
                 questionContainer.querySelectorAll('input[name="answer"]').forEach(input => {
@@ -347,7 +362,7 @@
 
                 // Update navigation buttons
                 document.getElementById('prev-btn').disabled = index === 0;
-                console.log('panjang soal',questionWithIndex.length);
+                console.log('panjang soal', questionWithIndex.length);
                 if (index === questionWithIndex.length - 1) {
                     document.getElementById('next-btn').classList.add('hidden');
                     document.getElementById('finish-btn').classList.remove('hidden');
@@ -399,10 +414,10 @@
                 const timerElement = document.querySelector('.timer');
                 if (timerElement) {
                     timerElement.innerHTML = `
-                        <span id="hours">${String(hours).padStart(2, '0')}</span>:
-                        <span id="minutes">${String(minutes).padStart(2, '0')}</span>:
-                        <span id="seconds">${String(seconds).padStart(2, '0')}</span>
-                    `;
+                                    <span id="hours">${String(hours).padStart(2, '0')}</span>:
+                                    <span id="minutes">${String(minutes).padStart(2, '0')}</span>:
+                                    <span id="seconds">${String(seconds).padStart(2, '0')}</span>
+                                `;
                 }
 
                 // Count up (elapsed time)
@@ -415,10 +430,10 @@
                 const elapsedTimeElement = document.querySelector('.elapsed-time');
                 if (elapsedTimeElement) {
                     elapsedTimeElement.innerHTML = `
-                <span id="elapsed-hours">${String(elapsedHours).padStart(2, '0')}</span>:
-                <span id="elapsed-minutes">${String(elapsedMinutes).padStart(2, '0')}</span>:
-                <span id="elapsed-seconds">${String(elapsedSecs).padStart(2, '0')}</span>
-            `;
+                            <span id="elapsed-hours">${String(elapsedHours).padStart(2, '0')}</span>:
+                            <span id="elapsed-minutes">${String(elapsedMinutes).padStart(2, '0')}</span>:
+                            <span id="elapsed-seconds">${String(elapsedSecs).padStart(2, '0')}</span>
+                        `;
                 }
 
                 // If time is up
@@ -593,15 +608,15 @@
                 notification.id = 'submitting-notification';
                 notification.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
                 notification.innerHTML = `
-                        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl">
-                            <div class="flex items-center space-x-4">
-                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                                <div class="text-gray-900 dark:text-white font-medium">
-                                    Mengumpulkan ujian...
-                                </div>
-                            </div>
-                        </div>
-                    `;
+                                    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                            <div class="text-gray-900 dark:text-white font-medium">
+                                                Mengumpulkan ujian...
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
                 document.body.appendChild(notification);
             }
 
@@ -613,14 +628,14 @@
                 const container = document.querySelector('.container-fluid');
                 if (container) {
                     container.innerHTML = `
-                            <div class="container">
-                                <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-8 text-center">
-                                    <h3 class="text-2xl font-bold text-red-900 dark:text-red-200 mb-4">Waktu Ujian Habis</h3>
-                                    <p class="text-red-800 dark:text-red-300 mb-6">Waktu ujian Anda telah habis. Jawaban Anda sedang dikumpulkan...</p>
-                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
-                                </div>
-                            </div>
-                        `;
+                                        <div class="container">
+                                            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-8 text-center">
+                                                <h3 class="text-2xl font-bold text-red-900 dark:text-red-200 mb-4">Waktu Ujian Habis</h3>
+                                                <p class="text-red-800 dark:text-red-300 mb-6">Waktu ujian Anda telah habis. Jawaban Anda sedang dikumpulkan...</p>
+                                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
+                                            </div>
+                                        </div>
+                                    `;
                 }
             }
         });

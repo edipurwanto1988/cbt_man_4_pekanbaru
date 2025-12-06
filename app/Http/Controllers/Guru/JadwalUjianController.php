@@ -28,7 +28,7 @@ class JadwalUjianController extends Controller
     {
         $guruId = Auth::guard('guru')->user()->id_guru;
         $tahunAjarans = \App\Models\TahunAjaran::all();
-        $bankSoals = BankSoal::where('created_by', $guruId)
+        $bankSoals = BankSoal::with('pretestSession')->where('created_by', $guruId)
             ->orWhere('pengawas_id', $guruId)
             ->with(['tahunAjaran', 'mataPelajaran', 'creator', 'pengawas'])
             ->get();
@@ -498,6 +498,8 @@ class JadwalUjianController extends Controller
         $session = PretestSession::findOrFail($request->session_id);
         $currentQuestion = PretestSoalTimer::findOrFail($request->current_question_id);
 
+        $bankSoal = BankSoal::findOrFail($session->bank_soal_id);
+
         // Start transaction
         DB::beginTransaction();
         try {
@@ -529,6 +531,9 @@ class JadwalUjianController extends Controller
                 // No more questions, finish the session
                 $session->status = 'finished';
                 $session->end_time = now();
+                $bankSoal->tanggal_selesai = now();
+                $bankSoal->status = 'selesai';
+                $bankSoal->save();
                 $session->save();
 
                 // Update all participants status to finished
@@ -578,6 +583,7 @@ class JadwalUjianController extends Controller
             'hasil.siswa'
         ])->findOrFail($id);
 
+        
         // Calculate rankings
         $rankings = PretestHasil::where('session_id', $id)
             ->with('siswa')
@@ -884,6 +890,41 @@ class JadwalUjianController extends Controller
     /**
      * Finish posttest.
      */
+
+    public function finishPretest(Request $request, $id)
+    {
+        $bankSoal = BankSoal::findOrFail($id);
+        
+        // Check if bank_soal is pretest type
+        if ($bankSoal->type_test !== 'pretest') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bank soal ini bukan bertipe pretest',
+            ], 400);
+        }
+
+        // Start transaction
+        DB::beginTransaction();
+        try {
+            // Update all participants status to finished
+            pretestPeserta::where('bank_soal_id', $bankSoal->id)
+                ->update(['status' => 'finished', 'end_time' => now()]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'pretest berhasil diselesaikan',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyelesaikan pretest: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function finishPosttest(Request $request, $id)
     {
         $bankSoal = BankSoal::findOrFail($id);

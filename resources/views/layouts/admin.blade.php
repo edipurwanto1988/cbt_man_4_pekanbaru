@@ -96,7 +96,7 @@
                         </div>
                         
                         <!-- Settings Menu -->
-                        <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" href="http://127.0.0.1:8000/admin/settings">
+                        <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" href="/admin/settings">
                             <i class="ri-settings-3-line text-xl"></i>
                             <p class="text-sm font-medium">Settings</p>
                         </a>
@@ -143,12 +143,7 @@
                         <p class="text-gray-500 dark:text-gray-400 text-xs">{{ Auth::guard('admin')->user()->role === 'guru' ? 'Guru' : ucfirst(Auth::guard('admin')->user()->role) }}</p>
                     </div>
                 </div>
-                <form method="POST" action="{{ route('admin.logout') }}" class="px-3">
-                    @csrf
-                    <button type="submit" class="ml-auto text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                        <i class="ri-logout-box-line text-xl"></i>
-                    </button>
-                </form>
+              
             </div>
         </div>
     </aside>

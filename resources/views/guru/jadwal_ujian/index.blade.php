@@ -177,15 +177,29 @@
                                     <div id="dropdown-{{ $item->id }}" class="hidden origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 divide-y divide-gray-100 dark:divide-gray-700 focus:outline-none z-[9999]" role="menu" aria-orientation="vertical" aria-labelledby="menu-button-{{ $item->id }}" tabindex="-1">
                                         <div class="py-1" role="none">
                                             @if($item->type_test == 'pretest')
-                                                <button onclick="startPretest({{ $item->id }})" class="flex items-center w-full px-4 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-left" role="menuitem">
-                                                    <i class="ri-play-circle-line mr-2"></i>
-                                                    Start Pretest
-                                                </button>
+                                                @if($item->status == 'aktif')
+                                                    <button onclick="startPretest({{ $item->id }})" class="flex items-center w-full px-4 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-left" role="menuitem">
+                                                        <i class="ri-play-circle-line mr-2"></i>
+                                                        Start Pretest
+                                                    </button>
+                                                @elseif($item->status == 'selesai')
+                                                    <a href="/guru/jadwal_ujian/pretest-results/{{ $item->pretestSession->id }}" class="flex items-center w-full px-4 py-2 text-sm inline-block text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-left" role="menuitem">
+                                                        <i class="ri-eye-line mr-2"></i>
+                                                        Lihat Hasil
+                                                    </a>
+                                                @endif
                                             @elseif($item->type_test == 'posttest')
-                                                <button onclick="startPosttest({{ $item->id }})" class="flex items-center w-full px-4 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-left" role="menuitem">
-                                                    <i class="ri-play-circle-line mr-2"></i>
-                                                    Start Posttest
-                                                </button>
+                                                @if($item->status == 'aktif')
+                                                    <button onclick="startPosttest({{ $item->id }})" class="flex items-center w-full px-4 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-left" role="menuitem">
+                                                        <i class="ri-play-circle-line mr-2"></i>
+                                                        Start Posttest
+                                                    </button>
+                                                @elseif($item->status == 'selesai')
+                                                    <a href="/guru/jadwal_ujian/pretest-results/{{ $item->pretestSession->id }}" class="flex items-center w-full px-4 py-2 text-sm inline-block text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-left" role="menuitem">
+                                                        <i class="ri-eye-line mr-2"></i>
+                                                        Lihat Hasil
+                                                    </a>
+                                                @endif
                                             @endif
                                         </div>
                                     </div>
