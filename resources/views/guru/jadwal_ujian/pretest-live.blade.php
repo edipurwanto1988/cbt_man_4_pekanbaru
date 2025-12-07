@@ -9,7 +9,6 @@
         <div>
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Live Pretest: {{ $session->bankSoal->nama_bank }}</h1>
             <p class="text-gray-600 dark:text-gray-400">Sesi: {{ $session->id }} | Status: <span class="font-semibold {{ $session->status == 'waiting' ? 'text-yellow-500' : ($session->status == 'running' ? 'text-green-500' : 'text-red-500') }}">{{ ucfirst($session->status) }}</span> | Total Soal: {{ \App\Models\PertanyaanSoal::where('bank_soal_id', $session->bankSoal->id)->count() }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Query: SELECT COUNT(*) AS total_soal FROM pertanyaan_soals WHERE bank_soal_id = '{{ $session->bankSoal->id }}'</p>
         </div>
         <a href="{{ route('guru.jadwal_ujian.pretest') }}" class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
             <i class="ri-arrow-left-line mr-2"></i>Kembali
@@ -112,15 +111,24 @@
     @else
         {{-- Tidak ada soal berikutnya, tampilkan tombol AKHIRI --}}
         <button onclick="endPretest()" 
-            class="w-full bg-red-500 hover:bg-red-600 text-white py-4 px-4 rounded-lg font-medium transition">
+                 
+            class="w-full bg-red-500 hover:bg-red-600 text-white py-4 px-4 rounded-lg font-medium transition
+             
+            ">
             <i class="ri-stop-circle-line mr-2"></i> Akhiri Pretest
         </button>
     @endif
                 @endif
                 
                 @if($session->status == 'waiting')
-                    <button onclick="startPretestSession()" class="w-full bg-green-500 hover:bg-green-600 text-white py-4 px-4 rounded-lg font-medium transition">
+                    <button 
+                    @disabled($participants->count() >= 3 ? false : true)
+                    
+                    onclick="startPretestSession()"  class="w-full bg-green-500 hover:bg-green-600 text-white py-4 px-4 rounded-lg font-medium transition
+                    disabled:bg-gray-400 disabled:cursor-not-allowed">
                         <i class="ri-play-line mr-2"></i> Mulai Pretest
+                        
+
                     </button>
                 @endif
             </div>

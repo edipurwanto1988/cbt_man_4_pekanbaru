@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
 use App\Models\BankSoal;
+use App\Models\PosttestHasil;
 use App\Models\PretestSession;
 use App\Models\PretestPeserta;
 use App\Models\PretestSoalTimer;
@@ -28,10 +29,11 @@ class JadwalUjianController extends Controller
     {
         $guruId = Auth::guard('guru')->user()->id_guru;
         $tahunAjarans = \App\Models\TahunAjaran::all();
-        $bankSoals = BankSoal::with('pretestSession')->where('created_by', $guruId)
-            ->orWhere('pengawas_id', $guruId)
-            ->with(['tahunAjaran', 'mataPelajaran', 'creator', 'pengawas'])
-            ->get();
+            $bankSoals = BankSoal::with('pretestSession')->where('created_by', $guruId)
+                ->orWhere('pengawas_id', $guruId)
+                ->with(['tahunAjaran', 'mataPelajaran', 'creator', 'pengawas'])
+                 ->orderBy('created_at', 'desc')
+                ->get();
         // dd($bankSoals);
         return view('guru.jadwal_ujian.index', compact('bankSoals', 'tahunAjarans'));
     }
@@ -50,6 +52,33 @@ class JadwalUjianController extends Controller
         return view('guru.jadwal_ujian.create', compact('bankSoals'));
     }
 
+
+public function unblockParticipant(Request $request)
+{
+    try {
+        $nisn = $request->input('nisn');
+        $bankSoalId = $request->input('bank_soal_id');
+        
+        $participant = PosttestPeserta::where('nisn', $nisn)
+            ->where('bank_soal_id', $bankSoalId)
+            ->firstOrFail();
+            
+        $participant->cheat_status = 'normal';
+        $participant->cheat_reason = null;
+        
+        $participant->save();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Peserta berhasil di-unblock'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal unblock peserta: ' . $e->getMessage()
+        ], 500);
+    }
+}
     /**
      * Store a newly created resource in storage.
      */
@@ -280,7 +309,7 @@ class JadwalUjianController extends Controller
         // Check if session is already running or finished
         if ($session->status !== 'waiting') {
             return response()->json([
-                'success' => false,
+                'success' => false, 
                 'message' => 'Sesi pretest sudah dimulai atau selesai',
             ], 400);
         }
@@ -444,46 +473,54 @@ class JadwalUjianController extends Controller
     /**
      * Show live posttest page.
      */
-    public function posttestLive(string $id)
-    {
-        $bankSoal = BankSoal::with([
-            'mataPelajaran',
-            'tahunAjaran',
-            'creator'
-        ])->findOrFail($id);
-
-        // Get participants with their data using the requested SQL query
-        $participants = PosttestPeserta::select(
-                'posttest_peserta.id AS peserta_id',
-                'siswa.nama_siswa',
-                'posttest_peserta.status',
-                'posttest_peserta.sisa_detik',
-                'posttest_peserta.cheat_status',
-                'posttest_peserta.cheat_reason'
-            )
-            ->leftJoin('siswa', 'siswa.nisn', '=', 'posttest_peserta.nisn')
-            ->leftJoin('posttest_cheat_log', 'posttest_cheat_log.peserta_id', '=', 'posttest_peserta.id')
-            ->where('posttest_peserta.bank_soal_id', $id)
-            ->groupBy(
-                'posttest_peserta.id',
-                'siswa.nama_siswa',
-                'posttest_peserta.status',
-                'posttest_peserta.sisa_detik',
-                'posttest_peserta.cheat_status',
-                'posttest_peserta.cheat_reason'
-            )
-            ->get()
-            ->map(function ($participant) {
-                // Get the last cheat timestamp
-                $lastCheat = PosttestCheatLog::where('peserta_id', $participant->peserta_id)
-                    ->max('timestamp');
-                
-                $participant->last_cheat = $lastCheat;
-                return $participant;
-            });
-
-        return view('guru.jadwal_ujian.posttest-live', compact('bankSoal', 'participants'));
-    }
+ public function posttestLive(string $id)
+{
+    $bankSoal = BankSoal::with([
+        'mataPelajaran',
+        'tahunAjaran',
+        'creator'
+    ])->findOrFail($id);
+    
+    // Get participants with their data and results
+    $participants = PosttestPeserta::select(
+        'posttest_peserta.id AS peserta_id',
+        'posttest_peserta.nisn',
+        'siswa.nama_siswa',
+        'posttest_peserta.status',
+        'posttest_peserta.sisa_detik',
+        'posttest_peserta.cheat_status',
+        'posttest_peserta.cheat_reason'
+    )
+    ->leftJoin('siswa', 'siswa.nisn', '=', 'posttest_peserta.nisn')
+    ->leftJoin('posttest_cheat_log', 'posttest_cheat_log.peserta_id', '=', 'posttest_peserta.id')
+    ->where('posttest_peserta.bank_soal_id', $id)
+    ->groupBy(
+        'posttest_peserta.id',
+        'posttest_peserta.nisn',
+        'siswa.nama_siswa',
+        'posttest_peserta.status',
+        'posttest_peserta.sisa_detik',
+        'posttest_peserta.cheat_status',
+        'posttest_peserta.cheat_reason'
+    )
+    ->get()
+    ->map(function ($participant) use ($id) {
+        // Get the last cheat timestamp
+        $lastCheat = PosttestCheatLog::where('peserta_id', $participant->peserta_id)
+            ->max('timestamp');
+        $participant->last_cheat = $lastCheat;
+        
+        // Get hasil posttest
+        $hasil = PosttestHasil::where('bank_soal_id', $id)
+            ->where('nisn', $participant->nisn)
+            ->first();
+        $participant->hasil = $hasil;
+        
+        return $participant;
+    });
+    
+    return view('guru.jadwal_ujian.posttest-live', compact('bankSoal', 'participants'));
+}
 
     /**
      * Update pretest time (move to next question).
@@ -657,6 +694,7 @@ class JadwalUjianController extends Controller
     public function startExam(Request $request, $bankSoalId)
     {
         try {
+            
             Log::info('Starting pretest for bank soal ID: ' . $bankSoalId);
             
             $bankSoal = BankSoal::findOrFail($bankSoalId);
@@ -679,10 +717,10 @@ class JadwalUjianController extends Controller
 
             // Check if session already exists for this bank soal
             $existingSession = PretestSession::where('bank_soal_id', $bankSoalId)
-                ->whereIn('status', ['waiting', 'running'])
                 ->first();
-                
+            
             if ($existingSession) {
+
                 Log::info('Existing session found: ' . $existingSession->id);
                 if ($request->expectsJson()) {
                     return response()->json([
@@ -767,6 +805,20 @@ class JadwalUjianController extends Controller
         }
     }
 
+    public function posttestHasil($hasilId)
+    {
+        $hasil = PosttestHasil::findOrFail($hasilId);
+
+        $siswa = Siswa::where('nisn', $hasil->nisn)->first();
+
+        return view('guru.posttest.show', [
+            'hasil' => $hasil,
+            'siswa' => $siswa
+        ]);
+    }
+
+
+    
     /**
      * Start countdown for exam.
      */

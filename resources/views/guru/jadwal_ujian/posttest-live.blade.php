@@ -104,7 +104,7 @@
                             </th>
                             <th scope="col"
                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                Sisa Waktu
+                                Sisa Waktu / Hasil
                             </th>
                             <th scope="col"
                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -112,13 +112,18 @@
                             </th>
                             <th scope="col"
                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                Last Cheat
+                                Nilai
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                Aksi
                             </th>
                         </tr>
                     </thead>
                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         @forelse($participants as $index => $participant)
-                            <tr>
+                            <tr
+                                class="@if($participant->cheat_status === 'blocked') bg-red-50 dark:bg-red-900/10 @elseif($participant->hasil) bg-green-50 dark:bg-green-900/10 @endif">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                     {{ $index + 1 }}
                                 </td>
@@ -126,20 +131,27 @@
                                     {{ $participant->nama_siswa }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                    @if($participant->status == 'waiting')
+                                    @if($participant->hasil)
+                                        {{-- Sudah selesai dan punya hasil --}}
+                                        <span
+                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                            <i class="ri-checkbox-circle-fill mr-1"></i> Selesai
+                                        </span>
+                                    @elseif($participant->cheat_status === 'blocked')
+                                        {{-- Diblokir --}}
+                                        <span
+                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                            <i class="ri-error-warning-fill mr-1"></i> Diblokir
+                                        </span>
+                                    @elseif($participant->status == 'waiting')
                                         <span
                                             class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                                             Menunggu
                                         </span>
                                     @elseif($participant->status == 'active')
                                         <span
-                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                            Aktif
-                                        </span>
-                                    @elseif($participant->status == 'finished')
-                                        <span
                                             class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                            Selesai
+                                            Aktif
                                         </span>
                                     @else
                                         <span
@@ -149,7 +161,18 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                    @if($participant->sisa_detik)
+                                    @if($participant->hasil)
+                                        {{-- Tampilkan hasil --}}
+                                        <div class="font-semibold text-green-600 dark:text-green-400">
+                                            {{ $participant->hasil->total_poin ?? 0 }} poin
+                                        </div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                                            Benar: {{ $participant->hasil->total_benar }} |
+                                            Salah: {{ $participant->hasil->total_salah }} |
+                                            Kosong: {{ $participant->hasil->total_kosong }}
+                                        </div>
+                                    @elseif($participant->sisa_detik)
+                                        {{-- Tampilkan sisa waktu --}}
                                         {{ gmdate('H:i:s', $participant->sisa_detik) }}
                                     @else
                                         -
@@ -174,16 +197,22 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                    @if($participant->last_cheat)
-                                        {{ $participant->last_cheat->format('d/m/Y H:i:s') }}
+                                   {{ $participant->hasil->nilai_akhir }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                    @if($participant->cheat_status === 'blocked')
+                                        <button onclick="unblockParticipant('{{ $participant->nisn }}', '{{ $bankSoal->id }}')"
+                                            class="inline-flex items-center px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-medium rounded-lg transition">
+                                            <i class="ri-lock-unlock-line mr-1"></i> Unblock
+                                        </button>
                                     @else
-                                        -
+                                        <span class="text-gray-400 dark:text-gray-500">-</span>
                                     @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                                <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
                                     Belum ada peserta
                                 </td>
                             </tr>
@@ -192,6 +221,38 @@
                 </table>
             </div>
         </div>
+
+        <script>
+            function unblockParticipant(nisn, bankSoalId) {
+                if (!confirm('Apakah Anda yakin ingin unblock peserta ini?')) {
+                    return;
+                }
+
+                fetch(`/guru/posttest/unblock`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        nisn: nisn,
+                        bank_soal_id: bankSoalId
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert('Gagal unblock peserta: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Terjadi kesalahan saat unblock peserta');
+                    });
+            }
+        </script>
 
         <!-- Action Buttons -->
         <div class="flex justify-end space-x-3">
@@ -293,11 +354,11 @@
                             const successDiv = document.createElement('div');
                             successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transform transition-all duration-300';
                             successDiv.innerHTML = `
-                                                            <div class="flex items-center gap-2">
-                                                                <i class="ri-checkbox-circle-line"></i>
-                                                                <span>Posttest berhasil dimulai!</span>
-                                                            </div>
-                                                        `;
+                                                                    <div class="flex items-center gap-2">
+                                                                        <i class="ri-checkbox-circle-line"></i>
+                                                                        <span>Posttest berhasil dimulai!</span>
+                                                                    </div>
+                                                                `;
                             document.body.appendChild(successDiv);
 
                             // Remove notification after 3 seconds
@@ -342,11 +403,11 @@
                             const successDiv = document.createElement('div');
                             successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transform transition-all duration-300';
                             successDiv.innerHTML = `
-                                                            <div class="flex items-center gap-2">
-                                                                <i class="ri-checkbox-circle-line"></i>
-                                                                <span>Posttest berhasil diselesaikan!</span>
-                                                            </div>
-                                                        `;
+                                                                    <div class="flex items-center gap-2">
+                                                                        <i class="ri-checkbox-circle-line"></i>
+                                                                        <span>Posttest berhasil diselesaikan!</span>
+                                                                    </div>
+                                                                `;
                             document.body.appendChild(successDiv);
 
                             // Remove notification after 3 seconds

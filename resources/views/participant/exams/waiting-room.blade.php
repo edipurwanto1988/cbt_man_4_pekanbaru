@@ -615,61 +615,69 @@ document.addEventListener('DOMContentLoaded', function() {
     const nicknameForm = document.getElementById('nickname-form');
     const nicknameInput = document.getElementById('nickname-input');
     const nicknameFeedback = document.getElementById('nickname-feedback');
-    
-    if (nicknameForm) {
-        nicknameForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const nickname = nicknameInput.value.trim();
-            
-            if (nickname.length < 3) {
-                showFeedback('Nama minimal 3 karakter', 'error');
-                return;
-            }
-            
-            if (nickname.length > 15) {
-                showFeedback('Nama maksimal 15 karakter', 'error');
-                return;
-            }
-            
-            // Submit nickname to server
-            fetch(`{{ route('participant.exams.waiting-room.nickname', $bankSoal->id) }}`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    nickname: nickname
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showFeedback('Berhasil bergabung dengan nama: ' + nickname, 'success');
-                    
-                    // Update the current participant's display name
-                    const currentParticipantName = document.querySelector('.current-participant-name');
-                    if (currentParticipantName) {
-                        currentParticipantName.textContent = nickname;
-                    }
-                    
-                    // Disable the form after successful submission
-                    nicknameInput.disabled = true;
-                    nicknameForm.querySelector('button[type="submit"]').disabled = true;
-                    nicknameForm.querySelector('button[type="submit"]').innerHTML = '<i class="ri-check-line mr-2"></i> Telah Bergabung';
-                } else {
-                    showFeedback(data.error || 'Gagal menyimpan nama', 'error');
+    console.log("{{ $participant->status }}");
+    if("{{ $participant->status }}" == "waiting"){
+        if (nicknameForm) {
+            nicknameForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const nickname = nicknameInput.value.trim();
+                
+                if (nickname.length < 3) {
+                    showFeedback('Nama minimal 3 karakter', 'error');
+                    return;
                 }
-            })
-            .catch(error => {
-                console.error('Error submitting nickname:', error);
-                showFeedback('Terjadi kesalahan, coba lagi', 'error');
+                
+                if (nickname.length > 15) {
+                    showFeedback('Nama maksimal 15 karakter', 'error');
+                    return;
+                }
+                
+                // Submit nickname to server
+                fetch(`{{ route('participant.exams.waiting-room.nickname', $bankSoal->id) }}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nickname: nickname
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showFeedback('Berhasil bergabung dengan nama: ' + nickname, 'success');
+                        
+                        // Update the current participant's display name
+                        const currentParticipantName = document.querySelector('.current-participant-name');
+                        if (currentParticipantName) {
+                            currentParticipantName.textContent = nickname;
+                        }
+                        
+                        // Disable the form after successful submission
+                        nicknameInput.disabled = true;
+                        nicknameForm.querySelector('button[type="submit"]').disabled = true;
+                        nicknameForm.querySelector('button[type="submit"]').innerHTML = '<i class="ri-check-line mr-2"></i> Telah Bergabung';
+                    } else {
+                        showFeedback(data.error || 'Gagal menyimpan nama', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error submitting nickname:', error);
+                    showFeedback('Terjadi kesalahan, coba lagi', 'error');
+                });
             });
-        });
-    }
+        }
     
+    } else {
+         // Disable the form after successful submission
+                        nicknameInput.disabled = true;
+                        nicknameForm.querySelector('button[type="submit"]').disabled = true;
+                        nicknameForm.querySelector('button[type="submit"]').innerHTML = '<i class="ri-check-line mr-2"></i> Telah Bergabung';
+    }
+  
     function showFeedback(message, type) {
         if (nicknameFeedback) {
             nicknameFeedback.textContent = message;

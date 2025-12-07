@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Participant;
 
 use App\Http\Controllers\Controller;
 use App\Models\JawabanSoal;
+use App\Models\PertanyaanSoal;
 use App\Models\PosttestHasil;
 use App\Models\BankSoal;
 use App\Models\BankSoalRombel;
@@ -169,6 +170,46 @@ class ExamController extends Controller
     }
 
 
+    public function endExam(Request $request, $bankSoalId)
+    {
+
+        try {
+            $nisn = Auth::guard('siswa')->user()->nisn;
+
+            $postTest = PosttestHasil::where('bank_soal_id', $bankSoalId)->where('nisn', $nisn)->first();
+            $bankSoal = BankSoal::findOrFail($bankSoalId);
+            $totalQuestions = $postTest->total_salah + $postTest->total_benar + $postTest->total_kosong;
+            $answeredQuestions = $totalQuestions - $postTest->total_kosong;
+
+            $participant = PosttestPeserta::where('bank_soal_id', $bankSoalId)
+                ->where('nisn', $nisn)
+                ->firstOrFail();
+
+            $posttest = PosttestHasil::where('bank_soal_id', $bankSoalId)
+                ->where('nisn', $nisn)
+                ->firstOrFail();
+
+            // Ambil waktu mulai & waktu submit
+            $waktuMulai = Carbon::parse($participant->waktu_mulai);
+            $waktuSubmit = Carbon::parse($posttest->created_at);
+
+            // Simpan dalam format jam:menit:detik
+            $waktuPengerjaan = $waktuMulai->diff($waktuSubmit)->format('%H:%I:%S');
+
+            // Redirect ke halaman finish view
+            return view('participant.exams.finished', [
+                'bankSoal' => $bankSoal,
+                'totalQuestions' => $totalQuestions,
+                'answeredQuestions' => $answeredQuestions,
+                'timeSpent' => $waktuPengerjaan,
+                'resultUrl' => route('participant.exams.result', [$bankSoalId])
+            ]);
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
     /**
      * Take a specific exam
      */
@@ -177,6 +218,7 @@ class ExamController extends Controller
         try {
             // Get current logged-in student NISN
             $nisn = Auth::guard('siswa')->user()->nisn;
+
 
             // Verify if this student has access to this exam
             $hasAccess = DB::table('bank_soals')
@@ -240,6 +282,7 @@ class ExamController extends Controller
                 // Get all participants for this session
                 $participants = PretestPeserta::with('siswa')
                     ->where('session_id', $pretestSession->id)
+                    ->where('nisn', $nisn)
                     ->get();
 
                 return view('participant.exams.waiting-room', compact('bankSoal', 'pretestSession', 'participants'));
@@ -301,7 +344,7 @@ class ExamController extends Controller
      * Get waiting room participants via AJAX
      */
 
-     public function history()
+    public function history()
     {
         $nisn = Auth::guard('siswa')->user()->nisn;
 
@@ -322,64 +365,64 @@ class ExamController extends Controller
             'posttestHistory' => $posttestHistory,
         ]);
     }
-public function resultPage($sessionId)
-{
+    public function resultPage($sessionId)
+    {
 
-    // Ambil semua hasil pretest berdasarkan session
-    $results = PretestHasil::with('siswa')->where('session_id', $sessionId)
-        ->orderBy('total_poin', 'desc')
-        ->orderBy('total_benar', 'desc')
-        ->get();
+        // Ambil semua hasil pretest berdasarkan session
+        $results = PretestHasil::with('siswa')->where('session_id', $sessionId)
+            ->orderBy('total_poin', 'desc')
+            ->orderBy('total_benar', 'desc')
+            ->get();
 
-    // dd($results);   
-    return view('participant.exams.result', [
-        'results' => $results
-    ]);
-}
-
-private function acumulate($sessionId, $nisn)
-{
-    // Ambil semua log siswa
-    $logs = PretestLog::where('session_id', $sessionId)
-        ->where('nisn', $nisn)
-        ->get();
-
-    $pretestSession = PretestSession::findOrFail($sessionId);
-
-    if ($logs->isEmpty()) {
-        return; // belum ada log
-    }
-
-    // Hitung total
-    $totalScore = $logs->sum('poin');
-    
-    $totalCorrect = $logs->sum('benar');
-    $totalQuestions = $logs->count();
-
-    // Cek apakah hasil sudah ada
-    $existing = PretestHasil::where('session_id', $sessionId)
-        ->where('nisn', $nisn)
-        ->first();
-
-    if ($existing) {
-        // UPDATE jika sudah ada
-        $existing->update([
-           'total_poin' => $totalScore,
-            'total_benar' => $totalCorrect,
-            'total_salah' => $totalQuestions - $totalCorrect,
-        ]);
-    } else {
-        // CREATE jika belum ada
-        PretestHasil::create([
-            'bank_soal_id' => $pretestSession->bank_soal_id,
-            'session_id' => $sessionId,
-            'nisn' => $nisn,
-            'total_poin' => $totalScore,
-            'total_benar' => $totalCorrect,
-            'total_salah' => $totalQuestions - $totalCorrect,
+        // dd($results);   
+        return view('participant.exams.result', [
+            'results' => $results
         ]);
     }
-}
+
+    private function acumulate($sessionId, $nisn)
+    {
+        // Ambil semua log siswa
+        $logs = PretestLog::where('session_id', $sessionId)
+            ->where('nisn', $nisn)
+            ->get();
+
+        $pretestSession = PretestSession::findOrFail($sessionId);
+
+        if ($logs->isEmpty()) {
+            return; // belum ada log
+        }
+
+        // Hitung total
+        $totalScore = $logs->sum('poin');
+
+        $totalCorrect = $logs->sum('benar');
+        $totalQuestions = $logs->count();
+
+        // Cek apakah hasil sudah ada
+        $existing = PretestHasil::where('session_id', $sessionId)
+            ->where('nisn', $nisn)
+            ->first();
+
+        if ($existing) {
+            // UPDATE jika sudah ada
+            $existing->update([
+                'total_poin' => $totalScore,
+                'total_benar' => $totalCorrect,
+                'total_salah' => $totalQuestions - $totalCorrect,
+            ]);
+        } else {
+            // CREATE jika belum ada
+            PretestHasil::create([
+                'bank_soal_id' => $pretestSession->bank_soal_id,
+                'session_id' => $sessionId,
+                'nisn' => $nisn,
+                'total_poin' => $totalScore,
+                'total_benar' => $totalCorrect,
+                'total_salah' => $totalQuestions - $totalCorrect,
+            ]);
+        }
+    }
 
 
     public function getWaitingRoomParticipants($bankSoalId, Request $request)
@@ -647,7 +690,7 @@ private function acumulate($sessionId, $nisn)
     {
         try {
             // Get current logged-in student NISN
-            
+
             $nisn = Auth::guard('siswa')->user()->nisn;
 
             // Get pretest session
@@ -664,7 +707,7 @@ private function acumulate($sessionId, $nisn)
 
             $answerId = (int) $request->answer;
             $jawaban = JawabanSoal::find($answerId);
-            
+
             // Validate request
             $isTimeout = $request->boolean('is_timeout', false);
             $rules = [
@@ -679,9 +722,9 @@ private function acumulate($sessionId, $nisn)
 
             $request->validate($rules);
 
-             $soalTimer = PretestSoalTimer::where('session_id', $sessionId)
-            ->orderBy('waktu_mulai', 'desc')
-            ->first();
+            $soalTimer = PretestSoalTimer::where('session_id', $sessionId)
+                ->orderBy('waktu_mulai', 'desc')
+                ->first();
 
             // Cek apakah ada timer (berarti ada soal aktif)
             if (!$soalTimer) {
@@ -702,7 +745,7 @@ private function acumulate($sessionId, $nisn)
                 ->where('pertanyaan_id', $soalTimer->pertanyaan_id)
                 ->where('is_benar', true)
                 ->first();
-            
+
             // Calculate base score
             $answer = $request->answer;
             $isCorrect = $jawaban->is_benar ?? false;
@@ -710,29 +753,29 @@ private function acumulate($sessionId, $nisn)
 
             // Calculate time-based bonus
             $bonusScore = 0;
-           $startTime = Carbon::parse($soalTimer->waktu_mulai); // waktu mulai soal
-$now = Carbon::now();
+            $startTime = Carbon::parse($soalTimer->waktu_mulai); // waktu mulai soal
+            $now = Carbon::now();
 
-// Hitung detik yang sudah terpakai
-$timeTaken = $startTime->diffInSeconds($now);
+            // Hitung detik yang sudah terpakai
+            $timeTaken = $startTime->diffInSeconds($now);
 
-$maxTime = $pretestSession->bankSoal->max_time ?? 30; // total waktu soal (detik)
-$bonusScore = 0;
+            $maxTime = $pretestSession->bankSoal->max_time ?? 30; // total waktu soal (detik)
+            $bonusScore = 0;
 
-if ($isCorrect && $timeTaken > 0 && $maxTime > 0) {
-    // Sisa waktu = maxTime - timeTaken
-    $remainingTime = max(0, $maxTime - $timeTaken);
+            if ($isCorrect && $timeTaken > 0 && $maxTime > 0) {
+                // Sisa waktu = maxTime - timeTaken
+                $remainingTime = max(0, $maxTime - $timeTaken);
 
-    // Formula bonus
-    $bonusScore = round(($remainingTime / $maxTime) * 1000);
+                // Formula bonus
+                $bonusScore = round(($remainingTime / $maxTime) * 1000);
 
-    $bonusScore = max(0, $bonusScore); // jaga-jaga agar tidak minus
-}
+                $bonusScore = max(0, $bonusScore); // jaga-jaga agar tidak minus
+            }
             // Total score = base score + bonus score
             $totalScore = $baseScore + $bonusScore;
 
-            
-          
+
+
             // Create pretest log
             PretestLog::create([
                 'nisn' => $nisn,

@@ -104,40 +104,11 @@
                             Kembali ke Dashboard
                         </a>
                         
-                        @if(isset($resultUrl))
-                        <a href="{{ $resultUrl }}" 
-                           class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 dark:border-gray-600 text-base font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
-                            <i class="ri-file-list-3-line mr-2"></i>
-                            Lihat Hasil
-                        </a>
-                        @endif
+                     
                     </div>
                 </div>
 
-                <!-- Optional: Feedback Section -->
-                <div class="mt-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 p-6">
-                    <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                        Berikan Feedback (Opsional)
-                    </h4>
-                    <form action="{{ route('participant.exams.feedback', $bankSoal->id) }}" method="POST">
-                        @csrf
-                        <div class="mb-4">
-                            <label for="feedback" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Bagaimana pengalaman Anda dengan ujian ini?
-                            </label>
-                            <textarea id="feedback" 
-                                      name="feedback" 
-                                      rows="4" 
-                                      class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-                                      placeholder="Tulis feedback Anda di sini..."></textarea>
-                        </div>
-                        <button type="submit" 
-                                class="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 transition-colors duration-200">
-                            <i class="ri-send-plane-line mr-2"></i>
-                            Kirim Feedback
-                        </button>
-                    </form>
-                </div>
+              
             </div>
         </div>
     </div>

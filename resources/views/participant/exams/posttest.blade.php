@@ -601,6 +601,9 @@
 
                 // Submit form
                 document.getElementById('exam-form').submit();
+
+                // Redirect to finish page
+                window.location.href = `/participant/exams/finish/${bankSoalId}`;
             }
 
             function showSubmittingNotification() {

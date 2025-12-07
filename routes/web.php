@@ -195,6 +195,9 @@ Route::prefix('participant')->name('participant.')->group(function () {
         Route::post('/exams/auto-save-answer/{bankSoalId}', [ExamController::class, 'autoSaveAnswer'])->name('exams.autoSaveAnswer');
         Route::post('/exams/cheat/{bankSoalId}', [ExamController::class, 'cheat'])->name('exams.cheat');
         Route::post('/exams/update-remaining-time/{bankSoalId}', [ExamController::class, 'updateRemainingTime'])->name('exams.updateRemainingTime');
+
+        Route::get('/exams/finish/{bankSoalId}', [ExamController::class, 'endExam'])->name('exams.finish');
+
         Route::get('/history', [ExamController::class, 'history'])
         ->name('history.index');
 
@@ -234,6 +237,9 @@ Route::prefix('guru')->name('guru.')->group(function () {
         Route::delete('bank_soal/{bankSoalId}/pertanyaan_soal/{pertanyaanSoal}', [PertanyaanSoalController::class, 'destroy'])->name('pertanyaan_soal.destroy')->where('pertanyaanSoal', '[0-9]+');
         Route::delete('bank_soal/{bankSoalId}/pertanyaan_soal', [PertanyaanSoalController::class, 'destroyMultiple'])->name('pertanyaan_soal.destroy_multiple');
         
+
+        Route::post('/posttest/unblock', [JadwalUjianController::class, 'unblockParticipant'])->name('posttest.unblock');
+
         // Rombel management routes
         Route::resource('rombel', GuruRombelController::class);
         Route::get('rombel/{rombel}/siswa', [GuruRombelController::class, 'siswa'])->name('rombel.siswa');

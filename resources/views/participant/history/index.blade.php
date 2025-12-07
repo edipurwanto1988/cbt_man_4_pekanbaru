@@ -39,7 +39,7 @@
                 </div>
                 <div class="text-right">
                     <div class="text-xl font-bold text-green-600">{{ $item->total_score }}</div>
-                   <a href="/participant/exams/results/{{ $item->session_id }}"
+                   <a href="/participant/exams/finish/{{ $item->bankSOal->id }}"
                        class="text-blue-500 underline text-sm">
                         Lihat Detail
                     </a>
