@@ -114,7 +114,7 @@
                             </td>
                             <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                                 <div class="flex items-center gap-2">
-                                    {{ $bankSoal->mataPelajaran->nama_mapel }}
+                                    {{ $bankSoal->mataPelajaran->nama_mapel ?? "-" }}
                                     <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                                         {{ $bankSoal->pertanyaan_soals_count }}
                                     </span>
