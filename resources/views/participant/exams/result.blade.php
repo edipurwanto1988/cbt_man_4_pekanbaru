@@ -36,10 +36,10 @@
             @if(isset($results[1]))
             <div class="podium-card bg-yellow-200 rounded-xl p-4 shadow-xl">
                  <div class="bg-blue-800 border-2 border-white rounded-full h-20 w-20 flex items-center justify-center">
-                    <img src="https://api.dicebear.com/7.x/big-ears/svg?seed={{ urlencode($results[3]->siswa->nama_siswa ?? 'Unknown') }}&background=6366f1&color=ffffff&size=32"
-                        alt="{{ $results[3]->siswa->nama_siswa }}"
+                    <img src="https://api.dicebear.com/7.x/big-ears/svg?seed={{ urlencode($results[1]->siswa->nama_siswa ?? 'Unknown') }}&background=6366f1&color=ffffff&size=32"
+                        alt="{{ $results[1]->siswa->nama_siswa }}"
                         class="w-14 h-14 rounded-full "
-                        onerror="this.src='https://api.dicebear.com/7.x/big-ears/svg?seed={{ urlencode($results[3]->siswa->nama_siswa ?? 'Unknown') }}&background=6366f1&color=ffffff&size=32'">
+                        onerror="this.src='https://api.dicebear.com/7.x/big-ears/svg?seed={{ urlencode($results[1]->siswa->nama_siswa ?? 'Unknown') }}&background=6366f1&color=ffffff&size=32'">
                 </div>
                 <div class="text-xl font-semibold mt-2">{{ $results[1]->nisn }}</div>
                 <div class="text-xl font-semibold mt-2">{{ $results[1]->siswa->nama_siswa }}</div>
