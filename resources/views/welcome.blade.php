@@ -276,13 +276,7 @@
         
         <!-- Footer with dynamic content from settings -->
         <footer class="w-full lg:max-w-4xl max-w-[335px] text-sm mt-6 text-center text-[#706f6c] dark:text-[#A1A09A]">
-            @php
-                $footerText = \App\Models\Setting::where('key', 'footer')->value('value');
-                if (empty($footerText)) {
-                    $footerText = '© ' . date('Y') . ' ' . config('app.name', 'Laravel');
-                }
-            @endphp
-            {!! $footerText !!}
+            Man 4 Pekanbaru©2025 - 2026
         </footer>
     </body>
 </html>
