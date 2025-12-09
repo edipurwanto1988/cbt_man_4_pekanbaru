@@ -102,11 +102,8 @@
 <!-- Footer -->
 <footer class="w-full py-6 px-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
     <div class="mx-auto max-w-7xl items-center justify-center text-center">
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-            @php
-                $footerText = \App\Models\Setting::getValue('Footer', '© ' . date('Y') . ' CBT Guru Portal. Semua hak dilindungi. | <a class="hover:underline text-primary" href="#">Dukungan Teknis</a>');
-            @endphp
-            {!! $footerText !!}
+       <p class="text-sm text-gray-500 dark:text-gray-400">
+           Man 4 Pekanbaru©2025 - 2026
         </p>
     </div>
 </footer>

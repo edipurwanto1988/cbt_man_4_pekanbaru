@@ -27,7 +27,7 @@
     <div class="max-w-3xl mx-auto text-center">
         
         <h1 class="text-4xl font-extrabold mb-6">🎉 Hasil Pretest</h1>
-        <p class="text-xl mb-8">Peringkat Peserta — Mirip Kahoot</p>
+        <p class="text-xl mb-8">Peringkat Peserta</p>
 
         <!-- TOP 3 (Podium Style) -->
         <div class="grid grid-cols-3 gap-4 mb-16 text-black">
@@ -35,7 +35,12 @@
             <!-- 2nd Place -->
             @if(isset($results[1]))
             <div class="podium-card bg-yellow-200 rounded-xl p-4 shadow-xl">
-                <div class="text-2xl font-bold">🥈</div>
+                 <div class="bg-blue-800 border-2 border-white rounded-full h-20 w-20 flex items-center justify-center">
+                    <img src="https://api.dicebear.com/7.x/big-ears/svg?seed={{ urlencode($results[3]->siswa->nama_siswa ?? 'Unknown') }}&background=6366f1&color=ffffff&size=32"
+                        alt="{{ $results[3]->siswa->nama_siswa }}"
+                        class="w-14 h-14 rounded-full "
+                        onerror="this.src='https://api.dicebear.com/7.x/big-ears/svg?seed={{ urlencode($results[3]->siswa->nama_siswa ?? 'Unknown') }}&background=6366f1&color=ffffff&size=32'">
+                </div>
                 <div class="text-xl font-semibold mt-2">{{ $results[1]->nisn }}</div>
                 <div class="text-xl font-semibold mt-2">{{ $results[1]->siswa->nama_siswa }}</div>
                 <div class="text-lg">Score: {{ $results[1]->total_poin }}</div>
@@ -46,8 +51,14 @@
 
             <!-- 1st Place -->
             @if(isset($results[0]))
-            <div class="podium-card bg-yellow-300 rounded-xl p-6 shadow-xl scale-110">
-                <div class="text-4xl font-bold">🥇</div>
+            <div class="podium-card bg-yellow-300 rounded-xl p-6 shadow-xl scale-110 flex justify-center flex-col items-center">
+                <div class="bg-blue-800 border-2 border-white rounded-full h-20 w-20 flex items-center justify-center">
+                    <img src="https://api.dicebear.com/7.x/big-ears/svg?seed={{ urlencode($results[0]->siswa->nama_siswa ?? 'Unknown') }}&background=6366f1&color=ffffff&size=32"
+                        alt="{{ $results[0]->siswa->nama_siswa }}"
+                        class="w-14 h-14 rounded-full "
+                        onerror="this.src='https://api.dicebear.com/7.x/big-ears/svg?seed={{ urlencode($results[0]->siswa->nama_siswa ?? 'Unknown') }}&background=6366f1&color=ffffff&size=32'">
+                </div>
+                
                 <div class="text-2xl font-extrabold mt-2">{{ $results[0]->nisn }}</div>
                 <div class="text-xl font-semibold mt-2">{{ $results[0]->siswa->nama_siswa }}</div>
                 <div class="text-xl font-semibold mt-1">Score: {{ $results[0]->total_poin }}</div>
@@ -57,7 +68,12 @@
             <!-- 3rd Place -->
             @if(isset($results[2]))
             <div class="podium-card bg-yellow-500 rounded-xl p-4 shadow-xl">
-                <div class="text-2xl font-bold">🥉</div>
+                <div class="bg-blue-800 border-2 border-white rounded-full h-20 w-20 flex items-center justify-center">
+                    <img src="https://api.dicebear.com/7.x/big-ears/svg?seed={{ urlencode($results[2]->siswa->nama_siswa ?? 'Unknown') }}&background=6366f1&color=ffffff&size=32"
+                        alt="{{ $results[2]->siswa->nama_siswa }}"
+                        class="w-14 h-14 rounded-full "
+                        onerror="this.src='https://api.dicebear.com/7.x/big-ears/svg?seed={{ urlencode($results[2]->siswa->nama_siswa ?? 'Unknown') }}&background=6366f1&color=ffffff&size=32'">
+                </div>
                 <div class="text-xl font-semibold mt-2">{{ $results[2]->nisn }}</div>
                 <div class="text-xl font-semibold mt-2">{{ $results[2]->siswa->nama_siswa }}</div>
                 <div class="text-lg">Score: {{ $results[2]->total_poin }}</div>
