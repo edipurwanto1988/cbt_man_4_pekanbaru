@@ -138,7 +138,7 @@
                                 {{ $item->tahunAjaran->tahun_ajaran }}
                             </td>
                             <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                {{ $item->mataPelajaran->nama_mapel ?? '-'}}
+                                {{ $item->mataPelajaran->nama_mapel  '-'}}
                             </td>
                             <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                 <span class="px-2 py-1 text-xs font-medium 
