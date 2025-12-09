@@ -822,7 +822,7 @@ class ExamController extends Controller
                 'pertanyaan_id' => $soalTimer->pertanyaan_id,
                 'benar' => $jawaban->is_benar,
                 'waktu_mulai' => $pretestSession->mulai_at ?? now(),
-                'waktu_respon' => now(),
+                'waktu_respon' => now()->toDateTimeString(),
                 'skor_kecepatan' => $bonusScore,
                 'poin' => $totalScore,
             ]);
