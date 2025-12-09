@@ -811,7 +811,7 @@ class ExamController extends Controller
             $totalScore = $baseScore + $bonusScore;
 
 
-            dd(now()->toDateTimeString());
+            
             // Create pretest log
             PretestLog::create([
                 'nisn' => $nisn,
