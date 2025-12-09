@@ -80,7 +80,7 @@ class ExamController extends Controller
                     $exam->can_start = $this->isWithinTimeRange($exam);
                 }
             }
-
+            
             return view('participant.exams.index', compact('availableExams'));
 
         } catch (\Exception $e) {
@@ -170,46 +170,82 @@ class ExamController extends Controller
     }
 
 
-    public function endExam(Request $request, $bankSoalId)
-    {
+ public function endExam(Request $request, $bankSoalId)
+{
+    try {
+        $nisn = Auth::guard('siswa')->user()->nisn;
+        $bankSoal = BankSoal::findOrFail($bankSoalId);
+        
+        $participant = PosttestPeserta::where('bank_soal_id', $bankSoalId)
+            ->where('nisn', $nisn)
+            ->firstOrFail();
 
-        try {
-            $nisn = Auth::guard('siswa')->user()->nisn;
+        // Ambil semua log jawaban peserta untuk ujian ini
+        $logs = PosttestLog::where('bank_soal_id', $bankSoalId)
+            ->where('nisn', $nisn)
+            ->get();
 
-            $postTest = PosttestHasil::where('bank_soal_id', $bankSoalId)->where('nisn', $nisn)->first();
-            $bankSoal = BankSoal::findOrFail($bankSoalId);
-            $totalQuestions = $postTest->total_salah + $postTest->total_benar + $postTest->total_kosong;
-            $answeredQuestions = $totalQuestions - $postTest->total_kosong;
+        // Hitung statistik dari log
+        $total_benar = $logs->where('jawaban_benar_salah', 1)->count();
+        $total_salah = $logs->where('jawaban_benar_salah', 0)->where('jawaban_esai', '!=', null)->count();
+        $total_kosong = $logs->where('jawaban_pilihan', null)->where('jawaban_esai', null)->count();
+        
+        // Hitung skor berdasarkan bobot soal
+        $skor = $logs->sum(function($log) {
+            if ($log->is_benar == 1) {
+                return $log->pertanyaan->bobot ?? 0; // Asumsi ada relasi ke pertanyaan
+            }
+            return 0;
+        });
 
-            $participant = PosttestPeserta::where('bank_soal_id', $bankSoalId)
-                ->where('nisn', $nisn)
-                ->firstOrFail();
+      // Hitung durasi pengerjaan
+        $waktuMulai = Carbon::parse($participant->waktu_mulai);
+        $waktuSekarang = Carbon::now();
+        $durasi_detik = $waktuMulai->diffInSeconds($waktuSekarang);
+        
+        // Format waktu pengerjaan menggunakan diff()->format() seperti kode lama
+        $waktuPengerjaan = $waktuMulai->diff($waktuSekarang)->format('%H:%I:%S');
 
-            $posttest = PosttestHasil::where('bank_soal_id', $bankSoalId)
-                ->where('nisn', $nisn)
-                ->firstOrFail();
+        // Simpan atau update hasil posttest
+        $postTest = PosttestHasil::updateOrCreate(
+            [
+                'bank_soal_id' => $bankSoalId,
+                'nisn' => $nisn
+            ],
+            [
+                'pertanyaan_id' => $bankSoalId, // Sesuaikan dengan kebutuhan
+                'total_benar' => $total_benar,
+                'total_salah' => $total_salah,
+                'total_kosong' => $total_kosong,
+                'skor' => $skor,
+                'durasi_detik' => $durasi_detik
+            ]
+        );
 
-            // Ambil waktu mulai & waktu submit
-            $waktuMulai = Carbon::parse($participant->waktu_mulai);
-            $waktuSubmit = Carbon::parse($posttest->created_at);
+        // Update status peserta menjadi selesai
+        $participant->update([
+            'status' => 'finished',
+            'waktu_selesai' => Carbon::now()
+        ]);
 
-            // Simpan dalam format jam:menit:detik
-            $waktuPengerjaan = $waktuMulai->diff($waktuSubmit)->format('%H:%I:%S');
+        // Hitung total questions
+        $totalQuestions = $total_salah + $total_benar + $total_kosong;
+        $answeredQuestions = $totalQuestions - $total_kosong;
+        
+         
 
-            // Redirect ke halaman finish view
-            return view('participant.exams.finished', [
-                'bankSoal' => $bankSoal,
-                'totalQuestions' => $totalQuestions,
-                'answeredQuestions' => $answeredQuestions,
-                'timeSpent' => $waktuPengerjaan,
-                'resultUrl' => route('participant.exams.result', [$bankSoalId])
-            ]);
-
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
+        // Redirect ke halaman finish view
+        return view('participant.exams.finished', [
+            'bankSoal' => $bankSoal,
+            'totalQuestions' => $totalQuestions,
+            'answeredQuestions' => $answeredQuestions,
+            'timeSpent' => $waktuPengerjaan,
+            'resultUrl' => route('participant.exams.result', [$bankSoalId])
+        ]);
+    } catch (\Exception $e) {
+        return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
     }
-
+}
     /**
      * Take a specific exam
      */

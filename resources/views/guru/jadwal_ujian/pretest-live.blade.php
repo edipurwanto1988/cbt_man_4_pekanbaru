@@ -10,7 +10,7 @@
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Live Pretest: {{ $session->bankSoal->nama_bank }}</h1>
             <p class="text-gray-600 dark:text-gray-400">Sesi: {{ $session->id }} | Status: <span class="font-semibold {{ $session->status == 'waiting' ? 'text-yellow-500' : ($session->status == 'running' ? 'text-green-500' : 'text-red-500') }}">{{ ucfirst($session->status) }}</span> | Total Soal: {{ \App\Models\PertanyaanSoal::where('bank_soal_id', $session->bankSoal->id)->count() }}</p>
         </div>
-        <a href="{{ route('guru.jadwal_ujian.pretest') }}" class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+        <a href="{{ route('guru.jadwal_ujian.index') }}" class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
             <i class="ri-arrow-left-line mr-2"></i>Kembali
         </a>
     </div>

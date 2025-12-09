@@ -24,11 +24,11 @@ class MataPelajaranController extends Controller
     {
         $rombelId = $request->query('rombel_id');
         $rombel = null;
-        
+
         if ($rombelId) {
             $rombel = \App\Models\Rombel::find($rombelId);
         }
-        
+
         return view('admin.mata_pelajaran.create', compact('rombel'));
     }
 
@@ -38,21 +38,12 @@ class MataPelajaranController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'mata_pelajaran_id' => 'required|exists:mata_pelajaran,id',
+            'name' => 'required|string|max:255',
         ]);
 
-        $rombelId = $request->input('rombel_id');
-        
-        if ($rombelId) {
-            // Create relationship in rombel_mapel table
-            \App\Models\RombelMapel::create([
-                'rombel_id' => $rombelId,
-                'mata_pelajaran_id' => $request->mata_pelajaran_id,
-            ]);
-            
-            return redirect()->route('admin.rombel.mapel', $rombelId)
-                ->with('success', 'Mata pelajaran berhasil ditambahkan ke rombel.');
-        }
+        MataPelajaran::create([
+            'nama_mapel' => $request->name
+        ]);
 
         return redirect()->route('admin.mata_pelajaran.index')
             ->with('success', 'Mata pelajaran berhasil ditambahkan');

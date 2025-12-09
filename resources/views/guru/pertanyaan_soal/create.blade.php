@@ -30,13 +30,7 @@
                             class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary dark:bg-gray-700 dark:text-white"
                             required>
                         <option value="">Pilih Jenis Soal</option>
-                        @if($bankSoal->type_test == 'pretest')
-                            <option value="pilihan_ganda" {{ old('jenis_soal') == 'pilihan_ganda' ? 'selected' : '' }}>Pilihan Ganda</option>
-                        @else
-                            <option value="pilihan_ganda" {{ old('jenis_soal') == 'pilihan_ganda' ? 'selected' : '' }}>Pilihan Ganda</option>
-                            <option value="esai" {{ old('jenis_soal') == 'esai' ? 'selected' : '' }}>Esai</option>
-                            <option value="benar_salah" {{ old('jenis_soal') == 'benar_salah' ? 'selected' : '' }}>Benar/Salah</option>
-                        @endif
+                        <option value="pilihan_ganda" {{ old('jenis_soal') == 'pilihan_ganda' ? 'selected' : '' }}>Pilihan Ganda</option>
                     </select>
                     @error('jenis_soal')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
