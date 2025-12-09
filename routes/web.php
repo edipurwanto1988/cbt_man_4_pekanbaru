@@ -288,3 +288,12 @@ Route::prefix('guru')->name('guru.')->group(function () {
         Route::post('jadwal_ujian/pretest/{id}/finish', [JadwalUjianController::class, 'finishPretest'])->name('jadwal_ujian.pretest.finish');
     });
 });
+
+Route::get('/clear-cache', function () {
+    Artisan::call('cache:clear');
+    Artisan::call('config:clear');
+    Artisan::call('route:clear');
+    Artisan::call('view:clear');
+
+    return 'Cache cleared!';
+});
