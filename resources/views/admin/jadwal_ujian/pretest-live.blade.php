@@ -1,4 +1,4 @@
-@extends('layouts.guru')
+@extends('layouts.admin')
 
 @section('title', 'Live Pretest - ' . $session->bankSoal->nama_bank)
 
@@ -10,7 +10,7 @@
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Live Pretest: {{ $session->bankSoal->nama_bank }}</h1>
             <p class="text-gray-600 dark:text-gray-400">Sesi: {{ $session->id }} | Status: <span class="font-semibold {{ $session->status == 'waiting' ? 'text-yellow-500' : ($session->status == 'running' ? 'text-green-500' : 'text-red-500') }}">{{ ucfirst($session->status) }}</span> | Total Soal: {{ \App\Models\PertanyaanSoal::where('bank_soal_id', $session->bankSoal->id)->count() }}</p>
         </div>
-        <a href="{{ route('guru.jadwal_ujian.pretest') }}" class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+        <a href="{{ route('admin.jadwal_ujian.pretest') }}" class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
             <i class="ri-arrow-left-line mr-2"></i>Kembali
         </a>
     </div>
@@ -186,7 +186,7 @@
             // Get CSRF token
             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
             
-            fetch('{{ route("guru.jadwal_ujian.startPretestSession") }}', {
+            fetch('{{ route("admin.jadwal_ujian.startPretestSession") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -221,7 +221,7 @@
             // Get CSRF token
             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
             
-            fetch('{{ route("guru.jadwal_ujian.updatePretestTime") }}', {
+            fetch('{{ route("admin.jadwal_ujian.updatePretestTime") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -256,7 +256,7 @@
         // Get CSRF token
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         
-        fetch('{{ route("guru.jadwal_ujian.handleTimeout") }}', {
+        fetch('{{ route("admin.jadwal_ujian.handleTimeout") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -291,7 +291,7 @@
             // Get CSRF token
             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
             
-            fetch('{{ route("guru.jadwal_ujian.updatePretestTime") }}', {
+            fetch('{{ route("admin.jadwal_ujian.updatePretestTime") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -309,7 +309,7 @@
                     if (data.redirect_url) {
                         window.location.href = data.redirect_url;
                     } else {
-                        window.location.href = '{{ route("guru.jadwal_ujian.pretest.results", $session->id) }}';
+                        window.location.href = '{{ route("admin.jadwal_ujian.pretest.results", $session->id) }}';
                     }
                 } else {
                     alert('Gagal mengakhiri pretest: ' + data.message);
@@ -323,7 +323,7 @@
     }
     
     function updateParticipants() {
-        fetch('{{ route("guru.jadwal_ujian.pretest.participants", $session->id) }}', {
+        fetch('{{ route("admin.jadwal_ujian.pretest.participants", $session->id) }}', {
             method: 'GET',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',

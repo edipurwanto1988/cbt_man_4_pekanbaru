@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Guru;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BankSoal;
@@ -27,15 +27,13 @@ class JadwalUjianController extends Controller
      */
     public function index()
     {
-        $guruId = Auth::guard('guru')->user()->id_guru;
         $tahunAjarans = \App\Models\TahunAjaran::all();
-            $bankSoals = BankSoal::with('pretestSession')->where('created_by', $guruId)
-                ->orWhere('pengawas_id', $guruId)
+            $bankSoals = BankSoal::with('pretestSession')
                 ->with(['tahunAjaran', 'mataPelajaran', 'creator', 'pengawas'])
                  ->orderBy('created_at', 'desc')
                 ->get();
         // dd($bankSoals);
-        return view('guru.jadwal_ujian.index', compact('bankSoals', 'tahunAjarans'));
+        return view('admin.jadwal_ujian.index', compact('bankSoals', 'tahunAjarans'));
     }
 
     /**
@@ -43,13 +41,11 @@ class JadwalUjianController extends Controller
      */
     public function create()
     {
-        $guruId = Auth::guard('guru')->user()->id_guru;
-        $bankSoals = BankSoal::where('created_by', $guruId)
-            ->orWhere('pengawas_id', $guruId)
-            ->with(['mataPelajaran'])
+       
+        $bankSoals = BankSoal::with(['mataPelajaran'])
             ->get();
 
-        return view('guru.jadwal_ujian.create', compact('bankSoals'));
+        return view('admin.jadwal_ujian.create', compact('bankSoals'));
     }
 
 
@@ -100,7 +96,7 @@ public function unblockParticipant(Request $request)
             return redirect()->back()->with('error', 'Bank soal ini bukan bertipe pretest');
         }
 
-        $guruId = Auth::guard('guru')->user()->id_guru;
+       
 
         // Check if session already exists for this bank soal
         $existingSession = PretestSession::where('bank_soal_id', $request->bank_soal_id)
@@ -113,17 +109,17 @@ public function unblockParticipant(Request $request)
                     'success' => true,
                     'message' => 'Sesi pretest sudah ada',
                     'session_id' => $existingSession->id,
-                    'redirect_url' => route('guru.jadwal_ujian.pretest.live', $existingSession->id),
+                    'redirect_url' => route('admin.jadwal_ujian.pretest.live', $existingSession->id),
                 ]);
             }
-            return redirect()->route('guru.jadwal_ujian.pretest.live', $existingSession->id)
+            return redirect()->route('admin.jadwal_ujian.pretest.live', $existingSession->id)
                 ->with('success', 'Sesi pretest sudah ada');
         }
 
         // Create pretest session
         $session = PretestSession::create([
             'bank_soal_id' => $request->bank_soal_id,
-            'guru_id' => $guruId,
+            'guru_id' => $bankSoal->pengawas_id,
             'status' => 'waiting',
         ]);
 
@@ -169,7 +165,7 @@ public function unblockParticipant(Request $request)
             ]);
         }
 
-        return redirect()->route('guru.jadwal_ujian.show', $session->id)
+        return redirect()->route('admin.jadwal_ujian.show', $session->id)
             ->with('success', 'Sesi pretest berhasil dibuat');
     }
 
@@ -206,7 +202,7 @@ public function unblockParticipant(Request $request)
             ]);
         }
 
-        return redirect()->route('guru.jadwal_ujian.posttest.live', $bankSoal->id)
+        return redirect()->route('admin.jadwal_ujian.posttest.live', $bankSoal->id)
             ->with('success', 'Posttest berhasil diinisialisasi');
     }
 
@@ -218,7 +214,7 @@ public function unblockParticipant(Request $request)
         $session = PretestSession::with(['bankSoal', 'guru', 'pesertas.siswa', 'soalTimers.pertanyaanSoal'])
             ->findOrFail($id);
 
-        return view('guru.jadwal_ujian.show', compact('session'));
+        return view('admin.jadwal_ujian.show', compact('session'));
     }
 
     /**
@@ -227,7 +223,7 @@ public function unblockParticipant(Request $request)
     public function edit(string $id)
     {
         $session = PretestSession::findOrFail($id);
-        return view('guru.jadwal_ujian.edit', compact('session'));
+        return view('admin.jadwal_ujian.edit', compact('session'));
     }
 
     /**
@@ -263,7 +259,7 @@ public function unblockParticipant(Request $request)
             }
         }
 
-        return redirect()->route('guru.jadwal_ujian.show', $session->id)
+        return redirect()->route('admin.jadwal_ujian.show', $session->id)
             ->with('success', 'Status sesi pretest berhasil diperbarui');
     }
 
@@ -275,7 +271,7 @@ public function unblockParticipant(Request $request)
         $session = PretestSession::findOrFail($id);
         $session->delete();
 
-        return redirect()->route('guru.jadwal_ujian.index')
+        return redirect()->route('admin.jadwal_ujian.index')
             ->with('success', 'Sesi pretest berhasil dihapus');
     }
 
@@ -284,15 +280,13 @@ public function unblockParticipant(Request $request)
      */
     public function pretest()
     {
-        $guruId = Auth::guard('guru')->user()->id_guru;
+       
         
         // Get all bank soals for this guru with their pretest sessions
-        $bankSoals = BankSoal::where('created_by', $guruId)
-            ->orWhere('pengawas_id', $guruId)
-            ->with(['mataPelajaran', 'pretestSession'])
+        $bankSoals = BankSoal::with(['mataPelajaran', 'pretestSession'])
             ->get();
 
-        return view('guru.jadwal_ujian.pretest', compact('bankSoals'));
+        return view('admin.jadwal_ujian.pretest', compact('bankSoals'));
     }
 
     /**
@@ -342,7 +336,7 @@ public function unblockParticipant(Request $request)
             return response()->json([
                 'success' => true,
                 'message' => 'Sesi pretest berhasil dimulai',
-                'redirect_url' => route('guru.jadwal_ujian.pretest.live', $session->id),
+                'redirect_url' => route('admin.jadwal_ujian.pretest.live', $session->id),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -384,7 +378,7 @@ public function unblockParticipant(Request $request)
             return response()->json([
                 'success' => true,
                 'message' => 'Posttest berhasil dimulai',
-                'redirect_url' => route('guru.jadwal_ujian.posttest.live', $bankSoal->id),
+                'redirect_url' => route('admin.jadwal_ujian.posttest.live', $bankSoal->id),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -467,7 +461,7 @@ public function unblockParticipant(Request $request)
             ->with(['siswa', 'pretestHasil'])
             ->get();
 
-        return view('guru.jadwal_ujian.pretest-live', compact('session', 'currentQuestion', 'nextQuestion', 'participants'));
+        return view('admin.jadwal_ujian.pretest-live', compact('session', 'currentQuestion', 'nextQuestion', 'participants'));
     }
 
     /**
@@ -519,7 +513,7 @@ public function unblockParticipant(Request $request)
         return $participant;
     });
     
-    return view('guru.jadwal_ujian.posttest-live', compact('bankSoal', 'participants'));
+    return view('admin.jadwal_ujian.posttest-live', compact('bankSoal', 'participants'));
 }
 
     /**
@@ -562,7 +556,7 @@ public function unblockParticipant(Request $request)
                 return response()->json([
                     'success' => true,
                     'message' => 'Berikutnya adalah soal nomor ' . $nextQuestion->urutan_soal,
-                    'redirect_url' => route('guru.jadwal_ujian.pretest.live', $session->id),
+                    'redirect_url' => route('admin.jadwal_ujian.pretest.live', $session->id),
                 ]);
             } else {
                 // No more questions, finish the session
@@ -582,7 +576,7 @@ public function unblockParticipant(Request $request)
                 return response()->json([
                     'success' => true,
                     'message' => 'Semua soal telah selesai',
-                    'redirect_url' => route('guru.jadwal_ujian.pretest.results', $session->id),
+                    'redirect_url' => route('admin.jadwal_ujian.pretest.results', $session->id),
                 ]);
             }
         } catch (\Exception $e) {
@@ -634,7 +628,7 @@ public function unblockParticipant(Request $request)
             $ranking->save();
         }
 
-        return view('guru.jadwal_ujian.pretest-results', compact('session', 'rankings'));
+        return view('admin.jadwal_ujian.pretest-results', compact('session', 'rankings'));
     }
 
     /**
@@ -642,13 +636,11 @@ public function unblockParticipant(Request $request)
      */
     public function posttest()
     {
-        $guruId = Auth::guard('guru')->user()->id_guru;
-        $bankSoals = BankSoal::where('created_by', $guruId)
-            ->orWhere('pengawas_id', $guruId)
-            ->with(['tahunAjaran', 'mataPelajaran'])
+       
+        $bankSoals = BankSoal::with(['tahunAjaran', 'mataPelajaran'])
             ->get();
 
-        return view('guru.jadwal_ujian.posttest', compact('bankSoals'));
+        return view('admin.jadwal_ujian.posttest', compact('bankSoals'));
     }
 
     /**
@@ -656,16 +648,7 @@ public function unblockParticipant(Request $request)
      */
     public function getPretestParticipants($sessionId)
     {
-        $session = PretestSession::findOrFail($sessionId);
-        
-        // Check if the current guru owns this session
-        $guruId = Auth::guard('guru')->user()->id_guru;
-        if ($session->guru_id != $guruId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized access',
-            ], 403);
-        }
+       
 
         $participants = PretestPeserta::where('session_id', $sessionId)
             ->with('siswa')
@@ -712,8 +695,8 @@ public function unblockParticipant(Request $request)
                 return redirect()->back()->with('error', 'Bank soal ini bukan bertipe pretest');
             }
 
-            $guruId = Auth::guard('guru')->user()->id_guru;
-            Log::info('Guru ID: ' . $guruId);
+           
+            
 
             // Check if session already exists for this bank soal
             $existingSession = PretestSession::where('bank_soal_id', $bankSoalId)
@@ -727,17 +710,17 @@ public function unblockParticipant(Request $request)
                         'success' => true,
                         'message' => 'Sesi pretest sudah ada',
                         'session_id' => $existingSession->id,
-                        'redirect_url' => route('guru.jadwal_ujian.pretest.live', $existingSession->id),
+                        'redirect_url' => route('admin.jadwal_ujian.pretest.live', $existingSession->id),
                     ]);
                 }
-                return redirect()->route('guru.jadwal_ujian.pretest.live', $existingSession->id)
+                return redirect()->route('admin.jadwal_ujian.pretest.live', $existingSession->id)
                     ->with('success', 'Sesi pretest sudah ada');
             }
 
             // Create pretest session
             $session = PretestSession::create([
                 'bank_soal_id' => $bankSoalId,
-                'guru_id' => $guruId,
+                'guru_id' => $bankSoal->pengawas_id,
                 'status' => 'waiting',
             ]);
             Log::info('Session created with ID: ' . $session->id);
@@ -784,11 +767,11 @@ public function unblockParticipant(Request $request)
                     'success' => true,
                     'message' => 'Sesi pretest berhasil dibuat',
                     'session_id' => $session->id,
-                    'redirect_url' => route('guru.jadwal_ujian.pretest.live', $session->id),
+                    'redirect_url' => route('admin.jadwal_ujian.pretest.live', $session->id),
                 ]);
             }
 
-            return redirect()->route('guru.jadwal_ujian.pretest.live', $session->id)
+            return redirect()->route('admin.jadwal_ujian.pretest.live', $session->id)
                 ->with('success', 'Sesi pretest berhasil dibuat');
         } catch (\Exception $e) {
             Log::error('Error in startExam: ' . $e->getMessage());
@@ -891,7 +874,7 @@ public function unblockParticipant(Request $request)
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'redirect_url' => route('guru.jadwal_ujian.posttest.live', $bankSoal->id),
+                'redirect_url' => route('admin.jadwal_ujian.posttest.live', $bankSoal->id),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -908,15 +891,6 @@ public function unblockParticipant(Request $request)
     public function getPosttestParticipantsByBankSoal($bankSoalId)
     {
         $bankSoal = BankSoal::findOrFail($bankSoalId);
-        
-        // Check if the current guru owns this bank soal
-        $guruId = Auth::guard('guru')->user()->id_guru;
-        if ($bankSoal->created_by != $guruId && $bankSoal->pengawas_id != $guruId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized access',
-            ], 403);
-        }
 
         $participants = PosttestPeserta::where('bank_soal_id', $bankSoalId)
             ->with('siswa')

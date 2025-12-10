@@ -62,13 +62,7 @@
                                 <a href="{{ route('admin.mata_pelajaran.edit', $item) }}" class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors" title="Edit">
                                     <i class="ri-edit-line text-sm"></i>
                                 </a>
-                                <form action="{{ route('admin.mata_pelajaran.destroy', $item) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors" title="Hapus" onclick="return confirm('Apakah Anda yakin ingin menghapus {{ $item->nama_mapel }}?')">
-                                        <i class="ri-delete-bin-line text-sm"></i>
-                                    </button>
-                                </form>
+                                
                             </div>
                         </td>
                     </tr>

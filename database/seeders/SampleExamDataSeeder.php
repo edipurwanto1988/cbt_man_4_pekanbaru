@@ -84,7 +84,7 @@ class SampleExamDataSeeder extends Seeder
         }
 
         $this->command->info('Sample exam data created successfully!');
-        $this->command->info('Student NISN: 1234567890');
+        $this->command->info(string: 'Student NISN: 1234567890');
         $this->command->info('Password: password123');
         $this->command->info('Exam Code: MATH-PRETEST-001');
     }

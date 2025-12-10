@@ -89,16 +89,17 @@
                 <div>
                     <label for="pengawas_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Pengawas
-                    </label>
-                    <select name="pengawas_id" id="pengawas_id"
-                        class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 focus:border-primary focus:ring-primary dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:focus:border-primary dark:focus:ring-primary">
-                        <option value="">Pilih Pengawas (Opsional)</option>
-                        @foreach ($gurus as $guru)
-                            <option value="{{ $guru->id_guru }}" {{ old('pengawas_id') == $guru->id_guru ? 'selected' : '' }}>
-                                {{ $guru->nama_guru }}
-                            </option>
-                        @endforeach
-                    </select>
+                        </label>
+                        <select name="pengawas_id" id="pengawas_id" value="d"disabled
+                            class="block w-full rounded-lg border border-gray-300 disabled:bg-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 focus:border-primary focus:ring-primary dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:focus:border-primary dark:focus:ring-primary">
+                            <option value="">Pilih Pengawas (Opsional)</option>
+                            
+                            @foreach ($gurus as $guru)
+                                <option value="{{ $guru->id_guru }}" {{ Auth::guard()->user()->id_guru == $guru->id_guru ? "selected" : ''}}>
+                                    {{ $guru->nama_guru }}
+                                </option>
+                            @endforeach
+                        </select>
                     @error('pengawas_id')
                         <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror

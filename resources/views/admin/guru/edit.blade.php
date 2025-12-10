@@ -92,12 +92,11 @@
             <!-- Password -->
             <div>
                 <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Password <span class="text-red-500">*</span>
+                    Password 
                 </label>
                 <input type="password"
                        id="password"
                        name="password"
-                       required
                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary dark:bg-gray-700 dark:text-white"
                        placeholder="Masukkan password">
                 @error('password')

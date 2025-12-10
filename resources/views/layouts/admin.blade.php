@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'CBT Admin') - CBT Admin</title>
     <link rel="icon" type="image/png" href="{{ asset('images/logo_clean-min.png') }}">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -90,7 +91,15 @@
                                     <i class="ri-group-line text-xl"></i>
                                     <p class="text-sm font-medium">Rombel</p>
                                 </a>
-                                
+                                <a class="flex items-center gap-3 px-3 py-2 rounded-lg {{ request()->routeIs('admin.bank_soal*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800' }} transition-colors" href="{{ route('admin.bank_soal.index') }}">
+                                    <i class="ri-book-line text-xl"></i>
+                                    <p class="text-sm font-medium">Bank Soal</p>
+                                </a>
+                                <a class="flex items-center gap-3 px-3 py-2 rounded-lg {{ request()->routeIs('admin.jadwal_ujian*') ? 'bg-primary/10 text-primary dark:bg-primary/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800' }} transition-colors" href="{{ route('admin.jadwal_ujian.index') }}">
+                                    <i class="ri-calendar-line text-xl"></i>
+                                    <p class="text-sm font-medium">Jadwal Ujian</p>
+                                </a>
+                             
                              
                             </div>
                         </div>

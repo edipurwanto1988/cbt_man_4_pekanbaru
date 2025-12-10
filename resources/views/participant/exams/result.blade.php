@@ -34,7 +34,7 @@
 
             <!-- 2nd Place -->
             @if(isset($results[1]))
-            <div class="podium-card bg-yellow-200 rounded-xl p-4 shadow-xl flex justify-center flex-col items-center">
+            <div class="podium-card bg-yellow-200 rounded-xl p-4 shadow-xl">
                  <div class="bg-blue-800 border-2 border-white rounded-full h-20 w-20 flex items-center justify-center">
                     <img src="https://api.dicebear.com/7.x/big-ears/svg?seed={{ urlencode($results[1]->siswa->nama_siswa ?? 'Unknown') }}&background=6366f1&color=ffffff&size=32"
                         alt="{{ $results[1]->siswa->nama_siswa }}"
@@ -67,7 +67,7 @@
 
             <!-- 3rd Place -->
             @if(isset($results[2]))
-            <div class="podium-card bg-yellow-500 rounded-xl p-4 shadow-xl flex justify-center flex-col items-center">
+            <div class="podium-card bg-yellow-500 rounded-xl p-4 shadow-xl">
                 <div class="bg-blue-800 border-2 border-white rounded-full h-20 w-20 flex items-center justify-center">
                     <img src="https://api.dicebear.com/7.x/big-ears/svg?seed={{ urlencode($results[2]->siswa->nama_siswa ?? 'Unknown') }}&background=6366f1&color=ffffff&size=32"
                         alt="{{ $results[2]->siswa->nama_siswa }}"

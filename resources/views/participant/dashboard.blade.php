@@ -124,7 +124,13 @@
     
     <!-- Footer with dynamic content from settings -->
     <footer class="w-full max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 text-sm mt-6 text-center text-gray-600">
-         Man 4 Pekanbaru©2025 - 2026
+        @php
+            $footerText = \App\Models\Setting::where('key', 'footer')->value('value');
+            if (empty($footerText)) {
+                $footerText = '© ' . date('Y') . ' CBT Platform';
+            }
+        @endphp
+        {!! $footerText !!}
     </footer>
 </body>
 </html>

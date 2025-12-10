@@ -22,35 +22,39 @@ class BankSoalController extends Controller
     {
         // Build query
         $query = BankSoal::with(['tahunAjaran', 'mataPelajaran', 'creator', 'pertanyaanSoals'])
-            ->withCount('pertanyaanSoals')
-            ->where('created_by', Auth::guard('guru')->user()->id_guru);
-        
+            ->withCount('pertanyaanSoals');
+
+        if (Auth::guard('guru')->check()) {
+            // Guru logged in
+            $query->where('created_by', Auth::guard('guru')->user()->id_guru);
+        }
+
         // Apply search filter
         if ($request->has('search') && !empty($request->search)) {
-            $query->where(function($q) use ($request) {
+            $query->where(function ($q) use ($request) {
                 $q->where('kode_bank', 'like', '%' . $request->search . '%')
-                  ->orWhere('nama_bank', 'like', '%' . $request->search . '%');
+                    ->orWhere('nama_bank', 'like', '%' . $request->search . '%');
             });
         }
-        
+
         // Apply tahun ajaran filter
         if ($request->has('tahun_ajaran_id') && !empty($request->tahun_ajaran_id)) {
             $query->where('tahun_ajaran_id', $request->tahun_ajaran_id);
         }
-        
+
         // Apply type test filter
         if ($request->has('type_test') && !empty($request->type_test)) {
             $query->where('type_test', $request->type_test);
         }
-        
+
         // Apply status filter
         if ($request->has('status') && !empty($request->status)) {
             $query->where('status', $request->status);
         }
-        
+
         $bankSoals = $query->latest()->paginate(10);
         $tahunAjarans = TahunAjaran::all();
-            
+
         return view('guru.bank_soal.index', compact('bankSoals', 'tahunAjarans'));
     }
 
@@ -62,13 +66,13 @@ class BankSoalController extends Controller
         $mataPelajarans = MataPelajaran::all();
         $tahunAjarans = TahunAjaran::all();
         $gurus = Guru::all();
-        
+
         // Get active rombels with active tahun ajaran
         $rombels = Rombel::join('tahun_ajaran', 'tahun_ajaran.id', '=', 'rombel.tahun_ajaran_id')
             ->where('tahun_ajaran.status', 'Aktif')
             ->select('rombel.id', 'rombel.nama_rombel')
             ->get();
-        
+
         return view('guru.bank_soal.create', compact('mataPelajarans', 'tahunAjarans', 'gurus', 'rombels'));
     }
 
@@ -97,14 +101,14 @@ class BankSoalController extends Controller
         DB::transaction(function () use ($request) {
             $data = $request->all();
             $data['created_by'] = Auth::guard('guru')->user()->id_guru;
-            
+
             // Auto-set pengawas_id to current logged-in guru if not provided
             if (!isset($data['pengawas_id']) || empty($data['pengawas_id'])) {
                 $data['pengawas_id'] = Auth::guard('guru')->user()->id_guru;
             }
-            
+
             $bankSoal = BankSoal::create($data);
-            
+
             // Create rombel relationships if any are selected
             if ($request->has('rombel_ids') && is_array($request->rombel_ids)) {
                 foreach ($request->rombel_ids as $rombelId) {
@@ -115,7 +119,7 @@ class BankSoalController extends Controller
                 }
             }
         });
-        
+
         return redirect()->route('guru.bank_soal.index')
             ->with('success', 'Bank Soal berhasil ditambahkan.');
     }
@@ -127,7 +131,7 @@ class BankSoalController extends Controller
     {
         // Allow any authenticated guru to view bank soals
         $bankSoal->load(['tahunAjaran', 'mataPelajaran', 'creator', 'pengawas']);
-        
+
         return view('guru.bank_soal.show', compact('bankSoal'));
     }
 
@@ -140,18 +144,18 @@ class BankSoalController extends Controller
         $mataPelajarans = MataPelajaran::all();
         $tahunAjarans = TahunAjaran::all();
         $gurus = Guru::all();
-        
+
         // Get active rombels with active tahun ajaran
         $rombels = Rombel::join('tahun_ajaran', 'tahun_ajaran.id', '=', 'rombel.tahun_ajaran_id')
             ->where('tahun_ajaran.status', 'Aktif')
             ->select('rombel.id', 'rombel.nama_rombel')
             ->get();
-        
+
         // Get selected rombels for this bank soal
         $selectedRombels = BankSoalRombel::where('bank_soal_id', $bankSoal->id)
             ->pluck('rombel_id')
             ->toArray();
-        
+
         return view('guru.bank_soal.edit', compact('bankSoal', 'mataPelajarans', 'tahunAjarans', 'gurus', 'rombels', 'selectedRombels'));
     }
 
@@ -180,18 +184,18 @@ class BankSoalController extends Controller
 
         DB::transaction(function () use ($request, $bankSoal) {
             $data = $request->all();
-            
+
             // Auto-set pengawas_id to current logged-in guru if not provided
             if (!isset($data['pengawas_id']) || empty($data['pengawas_id'])) {
                 $data['pengawas_id'] = Auth::guard('guru')->user()->id_guru;
             }
-            
+
             // Update bank soal
             $bankSoal->update($data);
-            
+
             // Always delete existing rombel relationships first
             BankSoalRombel::where('bank_soal_id', $bankSoal->id)->delete();
-            
+
             // Create new rombel relationships if any are selected
             if ($request->has('rombel_ids') && is_array($request->rombel_ids)) {
                 foreach ($request->rombel_ids as $rombelId) {
@@ -202,7 +206,7 @@ class BankSoalController extends Controller
                 }
             }
         });
-        
+
         return redirect()->route('guru.bank_soal.index')
             ->with('success', 'Bank Soal berhasil diperbarui.');
     }
@@ -214,7 +218,7 @@ class BankSoalController extends Controller
     {
         // Allow any authenticated guru to delete bank soals
         $bankSoal->delete();
-        
+
         return redirect()->route('guru.bank_soal.index')
             ->with('success', 'Bank Soal berhasil dihapus.');
     }

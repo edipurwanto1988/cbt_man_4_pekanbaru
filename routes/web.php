@@ -14,12 +14,13 @@ use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\BankSoalController;
 use App\Http\Controllers\Participant\AuthController as ParticipantAuthController;
 use App\Http\Controllers\Participant\ExamController;
+
 use App\Http\Controllers\Guru\AuthController as GuruAuthController;
 use App\Http\Controllers\Guru\BankSoalController as GuruBankSoalController;
 use App\Http\Controllers\Guru\PertanyaanSoalController;
 use App\Http\Controllers\Guru\RombelController as GuruRombelController;
 use App\Http\Controllers\Guru\JadwalUjianController;
-
+use App\Http\Controllers\Admin\JadwalUjianController as AdminJadwalUjianController;
 
 // Temporary route to create admin user
 Route::get('/create-admin', function() {
@@ -110,6 +111,28 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::resource('bank_soals', BankSoalController::class);
         });
         
+
+        // Bank Soal management routes
+        Route::resource('bank_soal', BankSoalController::class);
+        
+        // Import routes
+        Route::get('bank_soal/{bankSoalId}/pertanyaan_soal/template', [PertanyaanSoalController::class, 'template'])->name('pertanyaan_soal.template');
+        Route::post('bank_soal/{bankSoalId}/pertanyaan_soal/import', [PertanyaanSoalController::class, 'import'])->name('pertanyaan_soal.import');
+        
+        // Pertanyaan Soal management routes
+        Route::get('bank_soal/{bankSoalId}/pertanyaan_soal', [PertanyaanSoalController::class, 'index'])->name('pertanyaan_soal.index');
+        Route::get('bank_soal/{bankSoalId}/pertanyaan_soal/create', [PertanyaanSoalController::class, 'create'])->name('pertanyaan_soal.create');
+        Route::post('bank_soal/{bankSoalId}/pertanyaan_soal', [PertanyaanSoalController::class, 'store'])->name('pertanyaan_soal.store');
+        Route::get('bank_soal/{bankSoalId}/pertanyaan_soal/{pertanyaanSoal}', [PertanyaanSoalController::class, 'show'])->name('pertanyaan_soal.show')->where('pertanyaanSoal', '[0-9]+');
+        Route::get('bank_soal/{bankSoalId}/pertanyaan_soal/{pertanyaanSoal}/edit', [PertanyaanSoalController::class, 'edit'])->name('pertanyaan_soal.edit')->where('pertanyaanSoal', '[0-9]+');
+        Route::put('bank_soal/{bankSoalId}/pertanyaan_soal/{pertanyaanSoal}', [PertanyaanSoalController::class, 'update'])->name('pertanyaan_soal.update')->where('pertanyaanSoal', '[0-9]+');
+        Route::delete('bank_soal/{bankSoalId}/pertanyaan_soal/{pertanyaanSoal}', [PertanyaanSoalController::class, 'destroy'])->name('pertanyaan_soal.destroy')->where('pertanyaanSoal', '[0-9]+');
+        Route::delete('bank_soal/{bankSoalId}/pertanyaan_soal', [PertanyaanSoalController::class, 'destroyMultiple'])->name('pertanyaan_soal.destroy_multiple');
+        
+
+        Route::post('/posttest/unblock', [AdminJadwalUjianController::class, 'unblockParticipant'])->name('posttest.unblock');
+
+
         // Rombel management routes (for both admin and guru roles)
         Route::resource('rombel', RombelController::class);
         Route::get('rombel/import', [RombelController::class, 'import'])->name('rombel.import');
@@ -129,6 +152,42 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('rombel/{rombel}/mapel/{mapel}', [RombelController::class, 'mapelUpdate'])->name('rombel.mapel.update');
         Route::delete('rombel/{rombel}/mapel/{mapel}', [RombelController::class, 'mapelRemove'])->name('rombel.mapel.remove');
         
+
+        // Route Jadwal Ujian
+        // Jadwal Ujian routes
+        Route::get('jadwal_ujian', [AdminJadwalUjianController::class, 'index'])->name('jadwal_ujian.index');
+        Route::get('jadwal_ujian/create', [AdminJadwalUjianController::class, 'create'])->name('jadwal_ujian.create');
+        Route::post('jadwal_ujian', [AdminJadwalUjianController::class, 'store'])->name('jadwal_ujian.store');
+        Route::get('jadwal_ujian/{id}', [AdminJadwalUjianController::class, 'show'])->name('jadwal_ujian.show');
+        Route::get('jadwal_ujian/{id}/edit', [AdminJadwalUjianController::class, 'edit'])->name('jadwal_ujian.edit');
+        Route::put('jadwal_ujian/{id}', [AdminJadwalUjianController::class, 'update'])->name('jadwal_ujian.update');
+        Route::delete('jadwal_ujian/{id}', [AdminJadwalUjianController::class, 'destroy'])->name('jadwal_ujian.destroy');
+        
+        // Pretest routes
+        Route::get('jadwal_ujian/pretest', [AdminJadwalUjianController::class, 'pretest'])->name('jadwal_ujian.pretest');
+        Route::post('jadwal_ujian/start-pretest-session', [AdminJadwalUjianController::class, 'startPretestSession'])->name('jadwal_ujian.startPretestSession');
+        Route::get('jadwal_ujian/pretest-live/{id}', [AdminJadwalUjianController::class, 'pretestLive'])->name('jadwal_ujian.pretest.live');
+        Route::post('jadwal_ujian/update-pretest-time', [AdminJadwalUjianController::class, 'updatePretestTime'])->name('jadwal_ujian.updatePretestTime');
+        Route::post('jadwal_ujian/handle-timeout', [AdminJadwalUjianController::class, 'handleTimeout'])->name('jadwal_ujian.handleTimeout');
+        Route::get('jadwal_ujian/pretest-results/{id}', [AdminJadwalUjianController::class, 'showResults'])->name('jadwal_ujian.pretest.results');
+        Route::get('jadwal_ujian/pretest/{sessionId}/participants', [AdminJadwalUjianController::class, 'getPretestParticipants'])->name('jadwal_ujian.pretest.participants');
+        
+        // Teacher control routes for waiting room
+        Route::post('jadwal_ujian/start/{bankSoalId}', [AdminJadwalUjianController::class, 'startExam'])->name('jadwal_ujian.start');
+        Route::post('jadwal_ujian/start-countdown/{bankSoalId}', [AdminJadwalUjianController::class, 'startCountdown'])->name('jadwal_ujian.start-countdown');
+        Route::get('jadwal_ujian/check-pretest-status/{bankSoalId}', [AdminJadwalUjianController::class, 'checkPretestStatus'])->name('guru.jadwal_ujian.checkPretestStatus');
+        
+        // Posttest routes
+        Route::get('jadwal_ujian/posttest', [AdminJadwalUjianController::class, 'posttest'])->name('jadwal_ujian.posttest');
+        Route::post('jadwal_ujian/store-posttest', [AdminJadwalUjianController::class, 'storePosttest'])->name('jadwal_ujian.storePosttest');
+        Route::post('jadwal_ujian/start-posttest-session', [AdminJadwalUjianController::class, 'startPosttestSession'])->name('jadwal_ujian.startPosttestSession');
+        Route::post('jadwal_ujian/start-posttest', [AdminJadwalUjianController::class, 'startPosttest'])->name('jadwal_ujian.startPosttest');
+        Route::get('jadwal_ujian/posttest-live/{id}', [AdminJadwalUjianController::class, 'posttestLive'])->name('jadwal_ujian.posttest.live');
+        Route::post('jadwal_ujian/update-posttest-time', [AdminJadwalUjianController::class, 'updatePosttestTime'])->name('jadwal_ujian.updatePosttestTime');
+        Route::get('jadwal_ujian/posttest/{sessionId}/participants', [AdminJadwalUjianController::class, 'getPosttestParticipants'])->name('jadwal_ujian.posttest.participants');
+        Route::post('jadwal_ujian/posttest/{id}/finish', [AdminJadwalUjianController::class, 'finishPosttest'])->name('jadwal_ujian.posttest.finish');
+        Route::post('jadwal_ujian/pretest/{id}/finish', [AdminJadwalUjianController::class, 'finishPretest'])->name('jadwal_ujian.pretest.finish');
+
         // Test route for debugging
         Route::get('siswa/test', function() {
             return response()->json([

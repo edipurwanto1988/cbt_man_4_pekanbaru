@@ -811,7 +811,7 @@ class ExamController extends Controller
             $totalScore = $baseScore + $bonusScore;
 
 
-            
+             dd(now()->toDateTimeString());
             // Create pretest log
             PretestLog::create([
                 'nisn' => $nisn,
@@ -821,8 +821,8 @@ class ExamController extends Controller
                 'jawaban_id' => $request->answer,
                 'pertanyaan_id' => $soalTimer->pertanyaan_id,
                 'benar' => $jawaban->is_benar,
-                'waktu_mulai' => $pretestSession->mulai_at ?? now()->toDateTimeString(),
-                'waktu_respon' => now()->toDateTimeString(),
+                'waktu_mulai' => $pretestSession->mulai_at ?? now(),
+                'waktu_respon' => now(),
                 'skor_kecepatan' => $bonusScore,
                 'poin' => $totalScore,
             ]);
