@@ -117,7 +117,8 @@
                         <div class="flex flex-grow flex-col justify-center">
                             <div class="flex w-full flex-col gap-12">
                                 <div class="w-full gap-4 rounded-lg flex flex-col">
-                                    <div class="w-full bg-center bg-no-repeat bg-cover aspect-[2/1] rounded-xl flex-1" data-alt="Abstract gradient of blue and green shapes creating a calm and focused atmosphere for students." style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB5-CZu-TEzHALsCXc9TTpnr2iAEvndV6H7hGNqe8lDvA-tXC6pCpb17FBRTqiKBIPVn1aVh8i5qqWb0pEdkMCky-_5CvZGq3a7rlu5jyVxKWij7U0YgUM6R5mYR8OgO26RFs9YSCK7d4AFcE7O0GYg1dpgdGPfIgTRucxLRgkntbx17iIiibwifm_W7ncCSIvRYHuTachmjJzNpCZ4e76ZnxHqCtE7jj4hDUFHEEAk7qErGSV5kTAszCMJ2RGQld0PV8Xzr-k70yc");'></div>
+                                    <div class="w-full bg-center bg-no-repeat bg-cover aspect-[2/1] rounded-xl flex-1" data-alt="Abstract gradient of blue and green shapes creating a calm and focused atmosphere for students." style='background-image: url({{ $logoBanner->value }});'></div>
+                                    
                                     <div class="flex flex-col gap-3">
                                         <h1 class="text-[#0d121b] text-4xl font-black leading-tight tracking-[-0.033em] dark:text-white">Welcome, Participants!</h1>
                                         <p class="text-[#4c669a] text-lg font-normal leading-normal dark:text-slate-400">Your examination is about to begin. Please review the instructions carefully.</p>

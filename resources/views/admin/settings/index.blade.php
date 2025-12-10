@@ -7,17 +7,10 @@
     <div class="border-b border-primary/20 dark:border-primary/30">
         <nav class="flex space-x-8 px-6" aria-label="Tabs">
             @foreach($groupedSettings as $group => $settings)
-                @if($loop->first && !request()->has('tab'))
-                    <button class="py-4 px-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                            data-tab="{{ str_replace(' ', '', $group) }}">
-                        Pengaturan {{ $group }}
-                    </button>
-                @else
-                    <button class="py-4 px-1 border-b-2 text-sm font-medium dark:text-gray-400 dark:hover:text-gray-300 border-primary text-primary"
-                            data-tab="{{ str_replace(' ', '', $group) }}">
-                        {{ $group }}
-                    </button>
-                @endif
+                <button class="py-4 px-1 border-b-2 text-sm font-medium {{ $loop->first && !request()->has('tab') ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300' }}"
+                        data-tab="{{ str_replace(' ', '', $group) }}">
+                    {{ $group }}
+                </button>
             @endforeach
         </nav>
     </div>
@@ -37,7 +30,8 @@
                                 {{ str_replace('_', ' ', $setting->key) }}
                             </label>
                             
-                            @if(str_contains(strtolower($setting->key), 'favicon') || str_contains(strtolower($setting->key), 'logo'))
+                            @if($setting->type === 'file')
+                                {{-- File Upload Field --}}
                                 <div class="file-upload-container">
                                     @if($setting->value && filter_var($setting->value, FILTER_VALIDATE_URL))
                                         <div class="mb-2">
@@ -83,35 +77,26 @@
                                         <p class="text-xs text-gray-500 mt-1">Uploading...</p>
                                     </div>
                                 </div>
-                            @elseif(str_contains(strtolower($setting->key), 'description') || str_contains(strtolower($setting->key), 'alamat') || str_contains(strtolower($setting->key), 'meta description') || str_contains(strtolower($setting->key), 'og description') || str_contains(strtolower($setting->key), 'twitter description') || str_contains(strtolower($setting->key), 'company description') || str_contains(strtolower($setting->key), 'login_description') || str_contains(strtolower($setting->key), 'instruksi'))
+                            
+                            @elseif($setting->type === 'textarea')
+                                {{-- Textarea Field --}}
                                 <textarea id="{{ str_replace(' ', '_', $setting->key) }}"
                                           name="settings[{{ $setting->key }}]"
                                           rows="3"
-                                          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-background-dark dark:border-gray-600 dark:text-white">{{ $setting->value }}</textarea>
-                            @elseif(str_contains(strtolower($setting->key), 'email'))
-                                <input type="email"
-                                       id="{{ str_replace(' ', '_', $setting->key) }}"
-                                       name="settings[{{ $setting->key }}]"
-                                       value="{{ $setting->value }}"
-                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-background-dark dark:border-gray-600 dark:text-white">
-                            @elseif(str_contains(strtolower($setting->key), 'telp') || str_contains(strtolower($setting->key), 'whanshapp'))
-                                <input type="tel"
-                                       id="{{ str_replace(' ', '_', $setting->key) }}"
-                                       name="settings[{{ $setting->key }}]"
-                                       value="{{ $setting->value }}"
-                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-background-dark dark:border-gray-600 dark:text-white"
-                                       @if(str_contains(strtolower($setting->key), 'whanshapp'))
-                                           placeholder="Contoh: 628123456789"
-                                       @endif>
-                                @if(str_contains(strtolower($setting->key), 'whanshapp'))
-                                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Nomor WhatsApp dengan kode negara (tanpa + atau 00)</p>
-                                @endif
+                                          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-background-dark dark:border-gray-600 dark:text-white"
+                                          data-setting-key="{{ $setting->key }}">{{ $setting->value }}</textarea>
+                            
                             @else
+                                {{-- Text Input Field (default) --}}
                                 <input type="text"
                                        id="{{ str_replace(' ', '_', $setting->key) }}"
                                        name="settings[{{ $setting->key }}]"
                                        value="{{ $setting->value }}"
                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm dark:bg-background-dark dark:border-gray-600 dark:text-white">
+                            @endif
+                            
+                            @if(str_contains(strtolower($setting->key), 'whatsapp'))
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Nomor WhatsApp dengan kode negara (tanpa + atau 00)</p>
                             @endif
                         </div>
                     @endforeach
@@ -134,8 +119,11 @@
     </div>
 </div>
 
+@push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = '{{ csrf_token() }}';
+    
     // Get active tab from URL parameter
     const urlParams = new URLSearchParams(window.location.search);
     const activeTabFromUrl = urlParams.get('tab');
@@ -148,94 +136,61 @@ document.addEventListener('DOMContentLoaded', function() {
     if (activeTabFromUrl) {
         const cleanActiveTab = activeTabFromUrl.replace(/\s+/g, '');
         
-        // Hide all tab contents
-        tabContents.forEach(content => {
-            content.classList.add('hidden');
-        });
+        tabContents.forEach(content => content.classList.add('hidden'));
         
-        // Remove active state from all buttons
         tabButtons.forEach(btn => {
             btn.classList.remove('border-primary', 'text-primary');
             btn.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
-            btn.classList.remove('dark:text-gray-400', 'dark:hover:text-gray-300');
         });
         
-        // Show selected tab content
         const targetTabContent = document.getElementById(cleanActiveTab + '-tab');
         if (targetTabContent) {
             targetTabContent.classList.remove('hidden');
         }
         
-        // Set active state for corresponding button
         tabButtons.forEach(btn => {
             if (btn.dataset.tab === cleanActiveTab) {
                 btn.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
                 btn.classList.add('border-primary', 'text-primary');
-                btn.classList.remove('dark:text-gray-400', 'dark:hover:text-gray-300');
             }
         });
     }
     
+    // Tab button click handlers
     tabButtons.forEach(button => {
         button.addEventListener('click', function() {
             const targetTab = this.dataset.tab;
             
-            // Update URL without reloading the page
             const url = new URL(window.location);
             url.searchParams.set('tab', targetTab);
             window.history.pushState({}, '', url);
             
-            // Hide all tab contents
-            tabContents.forEach(content => {
-                content.classList.add('hidden');
-            });
+            tabContents.forEach(content => content.classList.add('hidden'));
             
-            // Remove active state from all buttons
             tabButtons.forEach(btn => {
                 btn.classList.remove('border-primary', 'text-primary');
                 btn.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
-                btn.classList.remove('dark:text-gray-400', 'dark:hover:text-gray-300');
             });
             
-            // Show selected tab content
             document.getElementById(targetTab + '-tab').classList.remove('hidden');
             
-            // Set active state for clicked button
             this.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
             this.classList.add('border-primary', 'text-primary');
-            this.classList.remove('dark:text-gray-400', 'dark:hover:text-gray-300');
         });
     });
     
-    // Handle save button for each tab
+    // Save button handlers
     document.querySelectorAll('.save-group-btn').forEach(button => {
         button.addEventListener('click', function() {
             const group = this.dataset.group;
             const form = document.querySelector(`.settings-form[data-group="${group}"]`);
             
-            // Save CKEditor content before submitting if it exists
-            const loginDescTextarea = document.querySelector('textarea[name="settings[Login_Description]"]');
-            const instruksiPretestTextarea = document.querySelector('textarea[name="settings[Instruksi_Pretest]"]');
-            const instruksiPosttestTextarea = document.querySelector('textarea[name="settings[Instruksi_Posttest]"]');
-            
-            if (loginDescTextarea && loginDescTextarea.ckeditorInstance) {
-                loginDescTextarea.value = loginDescTextarea.ckeditorInstance.getData();
-            }
-            
-            if (instruksiPretestTextarea && instruksiPretestTextarea.ckeditorInstance) {
-                instruksiPretestTextarea.value = instruksiPretestTextarea.ckeditorInstance.getData();
-            }
-            
-            if (instruksiPosttestTextarea && instruksiPosttestTextarea.ckeditorInstance) {
-                instruksiPosttestTextarea.value = instruksiPosttestTextarea.ckeditorInstance.getData();
-            }
+            // Update CKEditor content before submitting
+            updateAllCKEditorContent();
             
             const formData = new FormData(form);
-            
-            // Add active tab to form data
             formData.append('active_tab', group);
             
-            // Show loading state
             const originalContent = this.innerHTML;
             this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Menyimpan...';
             this.disabled = true;
@@ -244,20 +199,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-CSRF-TOKEN': csrfToken,
                     'Accept': 'application/json'
                 }
             })
-            .then(response => {
-                console.log('Response status:', response.status);
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
-                console.log('Response data:', data);
                 if (data.success) {
                     showNotification('success', 'Settings untuk group ' + group + ' berhasil disimpan!');
                     
-                    // Update URL to include active tab if it's not already there
                     if (data.active_tab) {
                         const url = new URL(window.location);
                         url.searchParams.set('tab', data.active_tab);
@@ -272,41 +222,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 showNotification('error', 'Terjadi kesalahan saat menyimpan settings');
             })
             .finally(() => {
-                // Reset button state
                 this.innerHTML = originalContent;
                 this.disabled = false;
             });
         });
     });
     
-    // Handle auto-save on input change (optional)
-    document.querySelectorAll('input, textarea').forEach(input => {
+    // Auto-save on input change
+    document.querySelectorAll('input:not([type="file"]), textarea').forEach(input => {
         input.addEventListener('change', function() {
-            // Save CKEditor content before submitting if it exists
-            const loginDescTextarea = document.querySelector('textarea[name="settings[Login_Description]"]');
-            const instruksiPretestTextarea = document.querySelector('textarea[name="settings[Instruksi_Pretest]"]');
-            const instruksiPosttestTextarea = document.querySelector('textarea[name="settings[Instruksi_Posttest]"]');
-            
-            if (loginDescTextarea && loginDescTextarea.ckeditorInstance) {
-                loginDescTextarea.value = loginDescTextarea.ckeditorInstance.getData();
-            }
-            
-            if (instruksiPretestTextarea && instruksiPretestTextarea.ckeditorInstance) {
-                instruksiPretestTextarea.value = instruksiPretestTextarea.ckeditorInstance.getData();
-            }
-            
-            if (instruksiPosttestTextarea && instruksiPosttestTextarea.ckeditorInstance) {
-                instruksiPosttestTextarea.value = instruksiPosttestTextarea.ckeditorInstance.getData();
-            }
+            updateAllCKEditorContent();
             
             const key = this.name.replace('settings[', '').replace(']', '');
             const value = this.value;
             
-            // Find the active tab
             const activeTab = document.querySelector('.tab-content:not(.hidden)');
             const activeTabGroup = activeTab ? activeTab.querySelector('.settings-form').dataset.group : '';
             
-            // Debounce the save request
             clearTimeout(this.saveTimeout);
             this.saveTimeout = setTimeout(() => {
                 saveSingleSetting(key, value, activeTabGroup);
@@ -314,17 +246,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    function updateAllCKEditorContent() {
+        document.querySelectorAll('textarea[data-setting-key]').forEach(textarea => {
+            if (textarea.ckeditorInstance) {
+                textarea.value = textarea.ckeditorInstance.getData();
+            }
+        });
+    }
+    
     function saveSingleSetting(key, value, activeTabGroup = '') {
         const formData = new FormData();
         formData.append('settings[' + key + ']', value);
-        formData.append('_token', '{{ csrf_token() }}');
+        formData.append('_token', csrfToken);
         formData.append('active_tab', activeTabGroup);
         
         fetch('{{ route("admin.settings.updateMultiple") }}', {
             method: 'POST',
             body: formData,
             headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'X-CSRF-TOKEN': csrfToken,
                 'Accept': 'application/json'
             }
         })
@@ -332,9 +272,8 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 console.log('Setting ' + key + ' saved successfully');
-                showNotification('success', 'Setting ' + key + ' tersimpan otomatis');
+                showNotification('success', 'Setting tersimpan otomatis');
                 
-                // Update URL to include active tab if it's not already there
                 if (data.active_tab) {
                     const url = new URL(window.location);
                     url.searchParams.set('tab', data.active_tab);
@@ -342,13 +281,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         })
-        .catch(error => {
-            console.error('Error saving setting:', error);
-        });
+        .catch(error => console.error('Error saving setting:', error));
     }
     
     function showNotification(type, message) {
-        // Remove existing notifications
         document.querySelectorAll('.notification').forEach(notification => notification.remove());
         
         const notification = document.createElement('div');
@@ -358,9 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
         notification.innerHTML = `
             <div class="flex items-center">
                 <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-3"></i>
-                <div>
-                    <p class="font-medium">${message}</p>
-                </div>
+                <div><p class="font-medium">${message}</p></div>
                 <button type="button" class="ml-4 text-white hover:text-gray-200" onclick="this.parentElement.parentElement.remove()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -368,14 +302,10 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         document.body.appendChild(notification);
-        
-        // Auto-dismiss after 5 seconds
-        setTimeout(() => {
-            notification.remove();
-        }, 5000);
+        setTimeout(() => notification.remove(), 5000);
     }
     
-    // Handle file upload functionality
+    // File upload handlers
     document.querySelectorAll('.upload-file-btn').forEach(button => {
         button.addEventListener('click', function() {
             const settingKey = this.dataset.settingKey;
@@ -390,14 +320,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('setting_key', settingKey);
-            formData.append('_token', '{{ csrf_token() }}');
+            formData.append('_token', csrfToken);
             
-            // Show progress
             const progressContainer = document.querySelector(`.upload-progress-${settingKey.replace(/\s+/g, '_')}`);
             const progressBar = progressContainer.querySelector('.progress-bar');
             progressContainer.classList.remove('hidden');
             
-            // Disable button during upload
             this.disabled = true;
             this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Uploading...';
             
@@ -405,30 +333,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-CSRF-TOKEN': csrfToken,
                     'Accept': 'application/json'
                 }
             })
             .then(response => {
-                // Simulate progress
                 let progress = 0;
                 const interval = setInterval(() => {
                     progress += 10;
                     progressBar.style.width = progress + '%';
-                    if (progress >= 90) {
-                        clearInterval(interval);
-                    }
+                    if (progress >= 90) clearInterval(interval);
                 }, 100);
                 
                 return response.json();
             })
             .then(data => {
                 if (data.success) {
-                    // Update hidden input with file URL
                     document.getElementById(settingKey.replace(/\s+/g, '_')).value = data.file_url;
                     
-                    // Update preview
-                    const previewContainer = document.querySelector(`#file-${settingKey.replace(/\s+/g, '_')}`).previousElementSibling;
+                    const previewContainer = fileInput.previousElementSibling;
                     if (previewContainer && previewContainer.tagName === 'DIV') {
                         previewContainer.innerHTML = `
                             <img src="${data.file_url}"
@@ -439,23 +362,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         `;
                     }
                     
-                    // Show remove button
-                    const removeBtn = document.querySelector(`.remove-file-btn[data-setting-key="${settingKey}"]`);
-                    if (removeBtn) {
-                        removeBtn.classList.remove('hidden');
-                    } else {
-                        // Create remove button if it doesn't exist
-                        const buttonContainer = this.parentElement;
-                        const newRemoveBtn = document.createElement('button');
-                        newRemoveBtn.type = 'button';
-                        newRemoveBtn.className = 'remove-file-btn bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition';
-                        newRemoveBtn.dataset.settingKey = settingKey;
-                        newRemoveBtn.innerHTML = '<i class="fas fa-trash mr-1"></i> Remove';
-                        buttonContainer.appendChild(newRemoveBtn);
-                        
-                        // Add event listener to new remove button
-                        newRemoveBtn.addEventListener('click', handleRemoveFile);
+                    let removeBtn = document.querySelector(`.remove-file-btn[data-setting-key="${settingKey}"]`);
+                    if (!removeBtn) {
+                        removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'remove-file-btn bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition';
+                        removeBtn.dataset.settingKey = settingKey;
+                        removeBtn.innerHTML = '<i class="fas fa-trash mr-1"></i> Remove';
+                        this.parentElement.appendChild(removeBtn);
+                        removeBtn.addEventListener('click', handleRemoveFile);
                     }
+                    removeBtn.classList.remove('hidden');
                     
                     showNotification('success', 'File uploaded successfully!');
                 } else {
@@ -467,21 +384,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 showNotification('error', 'Error uploading file');
             })
             .finally(() => {
-                // Reset button state
                 this.disabled = false;
                 this.innerHTML = '<i class="fas fa-upload mr-1"></i> Upload';
-                
-                // Hide progress
                 progressContainer.classList.add('hidden');
                 progressBar.style.width = '0%';
-                
-                // Clear file input
                 fileInput.value = '';
             });
         });
     });
     
-    // Handle remove file functionality
+    // Remove file handlers
     document.querySelectorAll('.remove-file-btn').forEach(button => {
         button.addEventListener('click', handleRemoveFile);
     });
@@ -489,38 +401,33 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleRemoveFile() {
         const settingKey = this.dataset.settingKey;
         
-        // Show loading state
         this.disabled = true;
         this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Removing...';
         
         const formData = new FormData();
         formData.append('setting_key', settingKey);
-        formData.append('_token', '{{ csrf_token() }}');
+        formData.append('_token', csrfToken);
         
         fetch('{{ route("admin.settings.removeFile") }}', {
             method: 'POST',
             body: formData,
             headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'X-CSRF-TOKEN': csrfToken,
                 'Accept': 'application/json'
             }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Update hidden input with empty value
                 document.getElementById(settingKey.replace(/\s+/g, '_')).value = '';
                 
-                // Remove preview
                 const fileInput = document.getElementById(`file-${settingKey.replace(/\s+/g, '_')}`);
                 const previewContainer = fileInput.previousElementSibling;
                 if (previewContainer && previewContainer.tagName === 'DIV') {
                     previewContainer.innerHTML = '';
                 }
                 
-                // Hide remove button
                 this.classList.add('hidden');
-                
                 showNotification('success', 'File removed successfully!');
             } else {
                 showNotification('error', data.message || 'Error removing file');
@@ -531,63 +438,43 @@ document.addEventListener('DOMContentLoaded', function() {
             showNotification('error', 'Error removing file');
         })
         .finally(() => {
-            // Reset button state
             this.disabled = false;
             this.innerHTML = '<i class="fas fa-trash mr-1"></i> Remove';
         });
     }
-});
-
-// Initialize CKEditor for Login_Description field
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if ClassicEditor is loaded
+    
+    // Initialize CKEditor for textarea fields
     if (typeof ClassicEditor !== 'undefined') {
-        // Find all textarea elements with name starting with "settings["
-        const textareas = document.querySelectorAll('textarea[name^="settings["]');
-        
-        textareas.forEach(textarea => {
-            // Initialize CKEditor for Login_Description, Instruksi_Pretest, and Instruksi_Posttest fields
-            if (textarea.name === 'settings[Login_Description]' ||
-                textarea.name === 'settings[Instruksi_Pretest]' ||
-                textarea.name === 'settings[Instruksi_Posttest]') {
-                ClassicEditor
-                    .create(textarea, {
-                        height: 200,
-                        toolbar: [
-                            'heading', '|',
-                            'bold', 'italic', 'strikethrough', 'underline', '|',
-                            'bulletedList', 'numberedList', '|',
-                            'outdent', 'indent', '|',
-                            'link', 'blockQuote', '|',
-                            'undo', 'redo'
-                        ]
-                    })
-                    .then(editor => {
-                        // Store the editor instance so we can access it later
-                        textarea.ckeditorInstance = editor;
-                        
-                        // Update the textarea when editor data changes
-                        editor.model.document.on('change:data', () => {
-                            textarea.value = editor.getData();
-                        });
-                    })
-                    .catch(error => {
-                        console.error('There was a problem initializing the CKEditor.', error);
+        document.querySelectorAll('textarea[data-setting-key]').forEach(textarea => {
+            ClassicEditor
+                .create(textarea, {
+                    height: 200,
+                    toolbar: [
+                        'heading', '|',
+                        'bold', 'italic', 'strikethrough', 'underline', '|',
+                        'bulletedList', 'numberedList', '|',
+                        'outdent', 'indent', '|',
+                        'link', 'blockQuote', '|',
+                        'undo', 'redo'
+                    ]
+                })
+                .then(editor => {
+                    textarea.ckeditorInstance = editor;
+                    
+                    editor.model.document.on('change:data', () => {
+                        textarea.value = editor.getData();
                     });
-            }
+                })
+                .catch(error => {
+                    console.error('CKEditor initialization error:', error);
+                });
         });
     }
 });
 </script>
 
 <style>
-/* Fix for CKEditor bullet list alignment */
-.ck-content ul {
-    padding-left: 20px !important;
-    margin-left: 0 !important;
-}
-
-.ck-content ol {
+.ck-content ul, .ck-content ol {
     padding-left: 20px !important;
     margin-left: 0 !important;
 }
@@ -597,9 +484,9 @@ document.addEventListener('DOMContentLoaded', function() {
     padding-left: 0 !important;
 }
 
-/* Additional CKEditor content styling fixes */
 .ck-editor__editable {
     min-height: 200px;
 }
 </style>
+@endpush
 @endsection

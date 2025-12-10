@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Participant;
 
 use App\Http\Controllers\Controller;
+use App\Models\Setting;
 use App\Models\Siswa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +19,8 @@ class AuthController extends Controller
      */
     public function showLoginForm()
     {
-        return view('participant.auth.login');
+        $logoBanner = Setting::where('key', 'banner_cbt')->first();
+        return view('participant.auth.login', compact('logoBanner'));
     }
 
     /**
