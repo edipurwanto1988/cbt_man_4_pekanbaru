@@ -1045,89 +1045,120 @@ class ExamController extends Controller
         }
     }
 
-    public function autoSaveAnswer($bankSoalId, Request $request)
-    {
-        try {
-            // Get current logged-in student NISN
-            $nisn = Auth::guard('siswa')->user()->nisn;
+  public function autoSaveAnswer($bankSoalId, Request $request)
+{
+    try {
+        // =============================
+        // 1. Ambil user siswa login
+        // =============================
+        $nisn = Auth::guard('siswa')->user()->nisn;
 
-            // Verify participant exists
-            $participant = PosttestPeserta::where('bank_soal_id', $bankSoalId)
-                ->where('nisn', $nisn)
-                ->first();
+        // =============================
+        // 2. Cek peserta
+        // =============================
+        $participant = PosttestPeserta::where('bank_soal_id', $bankSoalId)
+            ->where('nisn', $nisn)
+            ->first();
 
-            if (!$participant) {
-                return response()->json(['error' => 'Anda tidak terdaftar sebagai peserta'], 403);
-            }
+        if (!$participant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak terdaftar sebagai peserta'
+            ], 403);
+        }
 
-            // Validate request
-            $request->validate([
-                'question_id' => 'required|exists:pertanyaan_soals,id',
-                'answer' => 'nullable|string|in:A,B,C,D,E',
-                'duration' => 'nullable|numeric|min:0'
-            ]);
+        // =============================
+        // 3. Validasi request (FLEKSIBEL)
+        // =============================
+        $request->validate([
+            'question_id' => 'required|exists:pertanyaan_soals,id',
+            'answer'      => 'nullable|string',
+            'duration'    => 'nullable|numeric|min:0'
+        ]);
 
-            $questionId = $request->question_id;
-            $answer = $request->answer;
-            $duration = $request->duration ?? 0;
+        $questionId = $request->question_id;
+        $answer     = $request->answer;
+        $duration   = $request->duration ?? 0;
 
-            // Get the correct answer for this question
-            $correctAnswer = DB::table('jawaban_soals')
-                ->where('pertanyaan_id', $questionId)
-                ->where('is_benar', true)
-                ->first();
+        // =============================
+        // 4. Deteksi jenis soal
+        // =============================
+        $correctAnswer = DB::table('jawaban_soals')
+            ->where('pertanyaan_id', $questionId)
+            ->where('is_benar', true)
+            ->first();
 
-            // Check if answer is correct
-            $isCorrect = $correctAnswer && $correctAnswer->opsi === $answer;
+        $isMultipleChoice = $correctAnswer !== null;
 
-            // Calculate score (assuming each question has equal weight)
+        // =============================
+        // 5. Hitung skor (HANYA PG)
+        // =============================
+        $isCorrect = null;
+        $score = 0;
+
+        if ($isMultipleChoice && $answer !== null) {
+            $isCorrect = $correctAnswer->opsi === $answer;
+
             $totalQuestions = DB::table('pertanyaan_soals')
                 ->where('bank_soal_id', $bankSoalId)
                 ->count();
 
-            $questionScore = $totalQuestions > 0 ? (100 / $totalQuestions) : 0;
+            $questionScore = $totalQuestions > 0
+                ? (100 / $totalQuestions)
+                : 0;
+
             $score = $isCorrect ? $questionScore : 0;
-
-            // Check if log already exists for this question
-            $existingLog = PosttestLog::where('nisn', $nisn)
-                ->where('bank_soal_id', $bankSoalId)
-                ->where('pertanyaan_id', $questionId)
-                ->first();
-
-            if ($existingLog) {
-                // Update existing log
-                $existingLog->jawaban_pilihan = $answer;
-                $existingLog->jawaban_benar_salah = $isCorrect ? 1 : 0;
-                $existingLog->skor = $score;
-                $existingLog->is_benar = $isCorrect ? 1 : 0;
-                $existingLog->durasi_detik = $duration;
-                $existingLog->save();
-            } else {
-                // Create new log
-                PosttestLog::create([
-                    'nisn' => $nisn,
-                    'bank_soal_id' => $bankSoalId,
-                    'pertanyaan_id' => $questionId,
-                    'jawaban_pilihan' => $answer,
-                    'jawaban_benar_salah' => $isCorrect ? 1 : 0,
-                    'jawaban_esai' => null, // Can be filled with essay answer if needed
-                    'skor' => $score,
-                    'is_benar' => $isCorrect ? 1 : 0,
-                    'durasi_detik' => $duration,
-                ]);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Jawaban berhasil disimpan',
-                'is_correct' => $isCorrect,
-                'score' => $score
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);
         }
+
+        // =============================
+        // 6. Cek log existing
+        // =============================
+        $existingLog = PosttestLog::where('nisn', $nisn)
+            ->where('bank_soal_id', $bankSoalId)
+            ->where('pertanyaan_id', $questionId)
+            ->first();
+
+        // =============================
+        // 7. Simpan jawaban
+        // =============================
+        $payload = [
+            'jawaban_pilihan' => $isMultipleChoice ? $answer : null,
+            'jawaban_esai'    => !$isMultipleChoice ? $answer : null,
+            'is_benar'        => $isCorrect,
+            'skor'            => $score,
+            'durasi_detik'    => $duration,
+        ];
+
+        if ($existingLog) {
+            $existingLog->update($payload);
+        } else {
+            PosttestLog::create(array_merge($payload, [
+                'nisn'          => $nisn,
+                'bank_soal_id'  => $bankSoalId,
+                'pertanyaan_id' => $questionId,
+            ]));
+        }
+
+        // =============================
+        // 8. Response sukses
+        // =============================
+        return response()->json([
+            'success'    => true,
+            'message'    => 'Jawaban berhasil disimpan',
+            'type'       => $isMultipleChoice ? 'pilihan_ganda' : 'esai',
+            'is_correct' => $isCorrect,
+            'score'      => $score
+        ]);
+
+    } catch (\Throwable $e) {
+        return response()->json([
+            'success' => false,
+            'error'   => 'Terjadi kesalahan',
+            'detail'  => $e->getMessage()
+        ], 500);
     }
+}
+
 
     /**
      * Check if the exam is within the time range

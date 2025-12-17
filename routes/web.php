@@ -312,6 +312,7 @@ Route::prefix('guru')->name('guru.')->group(function () {
         Route::put('rombel/{rombel}/mapel/{mapel}', [GuruRombelController::class, 'mapelUpdate'])->name('rombel.mapel.update');
         Route::delete('rombel/{rombel}/mapel/{mapel}', [GuruRombelController::class, 'mapelRemove'])->name('rombel.mapel.remove');
         
+        
         // Jadwal Ujian routes
         Route::get('jadwal_ujian', [JadwalUjianController::class, 'index'])->name('jadwal_ujian.index');
         Route::get('jadwal_ujian/create', [JadwalUjianController::class, 'create'])->name('jadwal_ujian.create');
@@ -345,6 +346,10 @@ Route::prefix('guru')->name('guru.')->group(function () {
         Route::get('jadwal_ujian/posttest/{sessionId}/participants', [JadwalUjianController::class, 'getPosttestParticipants'])->name('jadwal_ujian.posttest.participants');
         Route::post('jadwal_ujian/posttest/{id}/finish', [JadwalUjianController::class, 'finishPosttest'])->name('jadwal_ujian.posttest.finish');
         Route::post('jadwal_ujian/pretest/{id}/finish', [JadwalUjianController::class, 'finishPretest'])->name('jadwal_ujian.pretest.finish');
+
+        // jadwal_ujian detail route
+        Route::get('jadwal_ujian/{banksoalId}/detail/{nisn}', [JadwalUjianController::class, 'detail'])->name('jadwal_ujian.detail');
+        Route::post('posttest/give-point', [JadwalUjianController::class, 'givePoint'])->name('posttest.givePoint');
     });
 });
 

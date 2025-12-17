@@ -122,94 +122,98 @@
                     </thead>
                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         @forelse($participants as $index => $participant)
-                            <tr
-                                class="@if($participant->cheat_status === 'blocked') bg-red-50 dark:bg-red-900/10 @elseif($participant->hasil) bg-green-50 dark:bg-green-900/10 @endif">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                    {{ $index + 1 }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                    {{ $participant->nama_siswa }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                    @if($participant->hasil)
-                                        {{-- Sudah selesai dan punya hasil --}}
-                                        <span
-                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                            <i class="ri-checkbox-circle-fill mr-1"></i> Selesai
-                                        </span>
-                                    @elseif($participant->cheat_status === 'blocked')
-                                        {{-- Diblokir --}}
-                                        <span
-                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                                            <i class="ri-error-warning-fill mr-1"></i> Diblokir
-                                        </span>
-                                    @elseif($participant->status == 'waiting')
-                                        <span
-                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                                            Menunggu
-                                        </span>
-                                    @elseif($participant->status == 'active')
-                                        <span
-                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                            Aktif
-                                        </span>
-                                    @else
-                                        <span
-                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-                                            {{ $participant->status }}
-                                        </span>
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                    @if($participant->hasil)
-                                        {{-- Tampilkan hasil --}}
-                                        <div class="font-semibold text-green-600 dark:text-green-400">
-                                            {{ $participant->hasil->total_poin ?? 0 }} poin
-                                        </div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400">
-                                            Benar: {{ $participant->hasil->total_benar }} |
-                                            Salah: {{ $participant->hasil->total_salah }} |
-                                            Kosong: {{ $participant->hasil->total_kosong }}
-                                        </div>
-                                    @elseif($participant->sisa_detik)
-                                        {{-- Tampilkan sisa waktu --}}
-                                        {{ gmdate('H:i:s', $participant->sisa_detik) }}
-                                    @else
-                                        -
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                    @if($participant->cheat_status)
-                                        <span
-                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                                            {{ $participant->cheat_status }}
-                                        </span>
-                                        @if($participant->cheat_reason)
-                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                {{ $participant->cheat_reason }}
-                                            </div>
-                                        @endif
-                                    @else
-                                        <span
-                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                            Clean
-                                        </span>
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                   {{ $participant->hasil->nilai_akhir }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                    @if($participant->cheat_status === 'blocked')
-                                        <button onclick="unblockParticipant('{{ $participant->nisn }}', '{{ $bankSoal->id }}')"
-                                            class="inline-flex items-center px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-medium rounded-lg transition">
-                                            <i class="ri-lock-unlock-line mr-1"></i> Unblock
-                                        </button>
-                                    @else
-                                        <span class="text-gray-400 dark:text-gray-500">-</span>
-                                    @endif
-                                </td>
-                            </tr>
+                                            <tr
+                                                class="@if($participant->cheat_status === 'blocked') bg-red-50 dark:bg-red-900/10 @elseif($participant->hasil) bg-green-50 dark:bg-green-900/10 @endif">
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                                    {{ $index + 1 }}
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                                    {{ $participant->nama_siswa }}
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                                    @if($participant->hasil)
+                                                        {{-- Sudah selesai dan punya hasil --}}
+                                                        <span
+                                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                            <i class="ri-checkbox-circle-fill mr-1"></i> Selesai
+                                                        </span>
+                                                    @elseif($participant->cheat_status === 'blocked')
+                                                        {{-- Diblokir --}}
+                                                        <span
+                                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                                            <i class="ri-error-warning-fill mr-1"></i> Diblokir
+                                                        </span>
+                                                    @elseif($participant->status == 'waiting')
+                                                        <span
+                                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                                            Menunggu
+                                                        </span>
+                                                    @elseif($participant->status == 'active')
+                                                        <span
+                                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                                            Aktif
+                                                        </span>
+                                                    @else
+                                                        <span
+                                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                                            {{ $participant->status }}
+                                                        </span>
+                                                    @endif
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                                    @if($participant->hasil)
+                                                        {{-- Tampilkan hasil --}}
+                                                        <div class="font-semibold text-green-600 dark:text-green-400">
+                                                            {{ $participant->hasil->total_poin ?? 0 }} poin
+                                                        </div>
+                                                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                            Benar: {{ $participant->hasil->total_benar }} |
+                                                            Salah: {{ $participant->hasil->total_salah }} |
+                                                            Kosong: {{ $participant->hasil->total_kosong }}
+                                                        </div>
+                                                    @elseif($participant->sisa_detik)
+                                                        {{-- Tampilkan sisa waktu --}}
+                                                        {{ gmdate('H:i:s', $participant->sisa_detik) }}
+                                                    @else
+                                                        -
+                                                    @endif
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                                    @if($participant->cheat_status)
+                                                        <span
+                                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                                            {{ $participant->cheat_status }}
+                                                        </span>
+                                                        @if($participant->cheat_reason)
+                                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                {{ $participant->cheat_reason }}
+                                                            </div>
+                                                        @endif
+                                                    @else
+                                                        <span
+                                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                            Clean
+                                                        </span>
+                                                    @endif
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                                    {{ $participant->hasil->nilai_akhir }}
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                                    <a href="{{ route('guru.jadwal_ujian.detail', [
+                                'banksoalId' => $bankSoal->id,
+                                'nisn' => $participant->nisn
+                            ]) }}" class="inline-flex items-center px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-medium rounded-lg transition">
+                                                             Detail
+                                                    </a>
+                                                    @if($participant->cheat_status === 'blocked')
+                                                        <button onclick="unblockParticipant('{{ $participant->nisn }}', '{{ $bankSoal->id }}')"
+                                                            class="inline-flex items-center px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-medium rounded-lg transition">
+                                                            <i class="ri-lock-unlock-line mr-1"></i> Unblock
+                                                        </button>
+                                                    @endif
+                                                </td>
+                                            </tr>
                         @empty
                             <tr>
                                 <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
@@ -354,11 +358,11 @@
                             const successDiv = document.createElement('div');
                             successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transform transition-all duration-300';
                             successDiv.innerHTML = `
-                                                                    <div class="flex items-center gap-2">
-                                                                        <i class="ri-checkbox-circle-line"></i>
-                                                                        <span>Posttest berhasil dimulai!</span>
-                                                                    </div>
-                                                                `;
+                                                                            <div class="flex items-center gap-2">
+                                                                                <i class="ri-checkbox-circle-line"></i>
+                                                                                <span>Posttest berhasil dimulai!</span>
+                                                                            </div>
+                                                                        `;
                             document.body.appendChild(successDiv);
 
                             // Remove notification after 3 seconds
@@ -403,11 +407,11 @@
                             const successDiv = document.createElement('div');
                             successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transform transition-all duration-300';
                             successDiv.innerHTML = `
-                                                                    <div class="flex items-center gap-2">
-                                                                        <i class="ri-checkbox-circle-line"></i>
-                                                                        <span>Posttest berhasil diselesaikan!</span>
-                                                                    </div>
-                                                                `;
+                                                                            <div class="flex items-center gap-2">
+                                                                                <i class="ri-checkbox-circle-line"></i>
+                                                                                <span>Posttest berhasil diselesaikan!</span>
+                                                                            </div>
+                                                                        `;
                             document.body.appendChild(successDiv);
 
                             // Remove notification after 3 seconds

@@ -93,20 +93,29 @@
                                                 {!! $currentQuestion->pertanyaan !!}
                                             </div>
                                         </div>
-
-                                        <div class="space-y-3">
-                                            @foreach($answers as $option => $text)
-                                                <label
-                                                    class="answer-option flex items-start p-4 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
-                                                    <input type="radio" name="answer" value="{{ $option }}" class="mt-1 mr-3">
-                                                    <div class="flex-1">
-                                                        <span
-                                                            class="font-medium text-gray-900 dark:text-white">{{ $option }}.</span>
-                                                        <span class="ml-2 text-gray-700 dark:text-gray-300">{{ $text }}</span>
-                                                    </div>
-                                                </label>
-                                            @endforeach
-                                        </div>
+                                        @if($currentQuestion->jenis_soal === 'pilihan_ganda')
+    <div class="space-y-3">
+        @foreach($answers as $option => $text)
+            <label
+                class="answer-option flex items-start p-4 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
+                <input type="radio" name="answer" value="{{ $option }}" class="mt-1 mr-3">
+                <div class="flex-1">
+                    <span
+                        class="font-medium text-gray-900 dark:text-white">{{ $option }}.</span>
+                    <span class="ml-2 text-gray-700 dark:text-gray-300">{{ $text }}</span>
+                </div>
+            </label>
+        @endforeach
+    </div>
+@else
+    <div class="space-y-3">
+        <textarea 
+            name="answer" 
+            rows="6" 
+            class="w-full p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 resize-none"
+            placeholder="Tulis jawaban Anda di sini..."></textarea>
+    </div>
+@endif
                                     </div>
                                 @else
                                     <div class="text-center py-8">
@@ -154,6 +163,19 @@
     </form>
 
     <script>
+
+        function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
         document.addEventListener('DOMContentLoaded', function () {
             const questions = @json($questions);
             const questionWithIndex = questions.map((q, index) => ({
@@ -268,6 +290,24 @@
                 });
             });
 
+            // Add this new event listener for textarea
+document.querySelectorAll('textarea[name="answer"]').forEach(textarea => {
+      textarea.addEventListener('input', debounce(function (event) {
+        const questionId = document.getElementById('current-question-id').value;
+        const value = event.target.value;
+
+        answers[questionId] = value;
+
+        if (!durations[questionId]) {
+            durations[questionId] = Math.floor((Date.now() - startTime) / 1000);
+        }
+
+        autoSaveAnswer(questionId, value, durations[questionId]);
+        updateQuestionItemStatus(questionId, true);
+        document.getElementById('next-btn').disabled = false;
+    }, 1000));
+});
+
             // Previous button click handler
             document.getElementById('prev-btn').addEventListener('click', function () {
                 if (currentQuestionIndex > 0) {
@@ -299,54 +339,88 @@
 
             function switchToQuestion(index) {
                 currentQuestionIndex = index;
-                const question = questions[index];
+    const question = questions[index];
 
-                // Update current question ID
-                document.getElementById('current-question-id').value = question.id;
+    // Update current question ID
+    document.getElementById('current-question-id').value = question.id;
 
-                // Update question content
-                const questionContainer = document.getElementById('question-container');
-                questionContainer.innerHTML = `
-                                    <div class="question-content" data-question-id="${question.id}">
-                                        <div class="mb-6">
-                                            <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                                                Soal ${index + 1}
-                                            </h4>
-                                            <div class="prose prose-sm max-w-none text-gray-700 dark:text-gray-300">
-                                                ${question.pertanyaan}
-                                            </div>
-                                        </div>
+    // Update question content
+    const questionContainer = document.getElementById('question-container');
+    
+    let answersHtml = '';
+    
+    if (question.jenis_soal === 'pilihan_ganda') {
+        answersHtml = `
+            <div class="space-y-3">
+                ${question.jawaban_soals.map(answer => `
+                    <label class="answer-option flex items-start p-4 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
+                        <input type="radio" name="answer" value="${answer.opsi}" class="mt-1 mr-3" ${answers[question.id] === answer.opsi ? 'checked' : ''}>
+                        <div class="flex-1">
+                            <span class="font-medium text-gray-900 dark:text-white">${answer.opsi}.</span>
+                            <span class="ml-2 text-gray-700 dark:text-gray-300">${answer.isi_jawaban}</span>
+                        </div>
+                    </label>
+                `).join('')}
+            </div>
+        `;
+    } else {
+        // Essay question
+        answersHtml = `
+            <div class="space-y-3">
+                <textarea 
+                    name="answer" 
+                    rows="6" 
+                    class="w-full p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 resize-none"
+                    placeholder="Tulis jawaban Anda di sini...">${answers[question.id] || ''}</textarea>
+            </div>
+        `;
+    }
+    
+    questionContainer.innerHTML = `
+        <div class="question-content" data-question-id="${question.id}">
+            <div class="mb-6">
+                <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                    Soal ${index + 1}
+                </h4>
+                <div class="prose prose-sm max-w-none text-gray-700 dark:text-gray-300">
+                    ${question.pertanyaan}
+                </div>
+            </div>
+            ${answersHtml}
+        </div>
+    `;
 
-                                        <div class="space-y-3">
-                                            ${question.jawaban_soals.map(answer => `
-                                                <label class="answer-option flex items-start p-4 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
-                                                    <input type="radio" name="answer" value="${answer.opsi}" class="mt-1 mr-3" ${answers[question.id] === answer.opsi ? 'checked' : ''}>
-                                                    <div class="flex-1">
-                                                        <span class="font-medium text-gray-900 dark:text-white">${answer.opsi}.</span>
-                                                        <span class="ml-2 text-gray-700 dark:text-gray-300">${answer.isi_jawaban}</span>
-                                                    </div>
-                                                </label>
-                                            `).join('')}
-                                        </div>
-                                    </div>
-                                `;
+    // Re-attach answer change handler for radio buttons
+    questionContainer.querySelectorAll('input[name="answer"]').forEach(input => {
+        input.addEventListener('change', function () {
+            const questionId = document.getElementById('current-question-id').value;
+            answers[questionId] = this.value;
 
-                // Re-attach answer change handler
-                questionContainer.querySelectorAll('input[name="answer"]').forEach(input => {
-                    input.addEventListener('change', function () {
-                        const questionId = document.getElementById('current-question-id').value;
-                        answers[questionId] = this.value;
+            if (!durations[questionId]) {
+                durations[questionId] = Math.floor((Date.now() - startTime) / 1000);
+            }
 
-                        if (!durations[questionId]) {
-                            durations[questionId] = Math.floor((Date.now() - startTime) / 1000);
-                        }
+            autoSaveAnswer(questionId, this.value, durations[questionId]);
+            updateQuestionItemStatus(questionId, true);
+            document.getElementById('next-btn').disabled = false;
+        });
+    });
 
-                        autoSaveAnswer(questionId, this.value, durations[questionId]);
-                        updateQuestionItemStatus(questionId, true);
-                        document.getElementById('next-btn').disabled = false;
-                    });
-                });
+    // Re-attach answer change handler for textarea
+    questionContainer.querySelectorAll('textarea[name="answer"]').forEach(textarea => {
+        textarea.addEventListener('input', debounce(function () {
+            const questionId = document.getElementById('current-question-id').value;
+            answers[questionId] = this.value;
 
+            if (!durations[questionId]) {
+                durations[questionId] = Math.floor((Date.now() - startTime) / 1000);
+            }
+
+            autoSaveAnswer(questionId, this.value, durations[questionId]);
+            updateQuestionItemStatus(questionId, true);
+            document.getElementById('next-btn').disabled = false;
+        }, 1000));
+    });
                 // Update question items visual state
                 document.querySelectorAll('.question-item').forEach((item, i) => {
                     const questionNumber = item.querySelector('.question-number');
@@ -498,6 +572,7 @@
             }
 
             function autoSaveAnswer(questionId, answer, duration) {
+                console.log('Auto-saving answer for question ID:', answer);
                 fetch(`/participant/exams/auto-save-answer/${bankSoalId}`, {
                     method: 'POST',
                     headers: {
