@@ -93,7 +93,7 @@
                                                 {!! $currentQuestion->pertanyaan !!}
                                             </div>
                                         </div>
-                                        @if($currentQuestion->jenis_soal === 'pilihan_ganda')
+                                        @if($currentQuestion->jenis_soal !== 'esai')
     <div class="space-y-3">
         @foreach($answers as $option => $text)
             <label
