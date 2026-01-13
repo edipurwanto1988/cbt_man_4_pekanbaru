@@ -1053,10 +1053,18 @@ public function unblockParticipant(Request $request)
     {
         $bankSoal = BankSoal::findOrFail($bankSoalId);
         
-        // Get all posttest results for this bank soal
-        $results = PosttestHasil::where('bank_soal_id', $bankSoalId)
+        // Get all posttest results for this bank soal with participant data
+        $results = PosttestHasil::where('posttest_hasil.bank_soal_id', $bankSoalId)
+            ->leftJoin('posttest_peserta', function($join) use ($bankSoalId) {
+                $join->on('posttest_hasil.nisn', '=', 'posttest_peserta.nisn')
+                     ->where('posttest_peserta.bank_soal_id', '=', $bankSoalId);
+            })
+            ->select('posttest_hasil.*', 
+                     'posttest_peserta.status', 
+                     'posttest_peserta.cheat_status', 
+                     'posttest_peserta.cheat_reason')
             ->with('siswa')
-            ->orderBy('nilai_akhir', 'desc')
+            ->orderBy('posttest_hasil.nilai_akhir', 'desc')
             ->get();
         
         return view('admin.jadwal_ujian.posttest-hasil', compact('bankSoal', 'results'));
