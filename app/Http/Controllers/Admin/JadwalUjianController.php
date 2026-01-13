@@ -794,7 +794,7 @@ public function unblockParticipant(Request $request)
 
         $siswa = Siswa::where('nisn', $hasil->nisn)->first();
 
-        return view('guru.posttest.show', [
+        return view('admin.jadwal_ujian.posttest-hasil-detail', [
             'hasil' => $hasil,
             'siswa' => $siswa
         ]);
@@ -1044,5 +1044,21 @@ public function unblockParticipant(Request $request)
                 'message' => 'Gagal menandai bank soal sebagai selesai: ' . $e->getMessage(),
             ], 500);
         }
+}
+
+    /**
+     * Show posttest results for a bank soal.
+     */
+    public function posttestHasilBankSoal($bankSoalId)
+    {
+        $bankSoal = BankSoal::findOrFail($bankSoalId);
+        
+        // Get all posttest results for this bank soal
+        $results = PosttestHasil::where('bank_soal_id', $bankSoalId)
+            ->with('siswa')
+            ->orderBy('nilai_akhir', 'desc')
+            ->get();
+        
+        return view('admin.jadwal_ujian.posttest-hasil', compact('bankSoal', 'results'));
     }
 }

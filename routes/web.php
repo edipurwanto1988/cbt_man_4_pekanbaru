@@ -188,6 +188,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('jadwal_ujian/posttest/{id}/finish', [AdminJadwalUjianController::class, 'finishPosttest'])->name('jadwal_ujian.posttest.finish');
         Route::post('jadwal_ujian/pretest/{id}/finish', [AdminJadwalUjianController::class, 'finishPretest'])->name('jadwal_ujian.pretest.finish');
         Route::post('jadwal_ujian/{id}/mark-selesai', [AdminJadwalUjianController::class, 'markAsSelesai'])->name('jadwal_ujian.markSelesai');
+        Route::get('jadwal_ujian/posttest-hasil/{bankSoalId}', [AdminJadwalUjianController::class, 'posttestHasilBankSoal'])->name('jadwal_ujian.posttest.hasil');
+        Route::get('jadwal_ujian/posttest-hasil-detail/{hasilId}', [AdminJadwalUjianController::class, 'posttestHasil'])->name('jadwal_ujian.posttestHasil');
 
         // Test route for debugging
         Route::get('siswa/test', function() {

@@ -194,6 +194,11 @@
                                                         <i class="ri-play-circle-line mr-2"></i>
                                                         Lihat Posttest
                                                     </button>
+                                                @elseif($item->status == 'selesai')
+                                                    <a href="/admin/jadwal_ujian/posttest-hasil/{{ $item->id }}" class="flex items-center w-full px-4 py-2 text-sm inline-block text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-left" role="menuitem">
+                                                        <i class="ri-eye-line mr-2"></i>
+                                                        Lihat Hasil
+                                                    </a>
                                                 @endif
                                             @endif
                                         </div>
