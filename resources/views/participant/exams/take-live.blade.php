@@ -165,7 +165,8 @@
             updateInterval = setInterval(loadCurrentQuestion, 2000);
         });
 
-        function selectAnswer(option) {
+        function selectAnswer(option, newAnswer = true) {
+            
             selectedAnswer = option;
             hasAnsweredCurrentQuestion = true;
 
@@ -189,7 +190,10 @@
             selectedElement.style.pointerEvents = 'auto';
 
             // Submit answer with time data
-            submitAnswer(option, timeTaken);
+            if(newAnswer){
+                submitAnswer(option, timeTaken);
+            }
+            
         }
 
         function submitAnswer(option, timeTaken) {
@@ -278,10 +282,15 @@
                             // Only update if it's a new question
                             if (data.question.id !== currentQuestionId) {
                                 currentQuestionId = data.question.id;
-                                console.log('hello');
-                                console.log("this data", data);
+                                
                                 displayQuestion(data.question);
                                 updateStepInfo(data.step, data.total_questions);
+                            }
+                            
+                            if(data.question.current_answer.id){
+                                // Show previously selected answer
+                                console.log('ini current', data.question.current_answer.id);
+                                selectAnswer(data.question.current_answer.id, false);
                             }
                         }
 

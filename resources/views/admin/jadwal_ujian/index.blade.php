@@ -197,6 +197,14 @@
                                                 @endif
                                             @endif
                                         </div>
+                                        <div class="py-1" role="none">
+                                            @if($item->status == 'aktif')
+                                                <button onclick="markAsSelesai({{ $item->id }})" class="flex items-center w-full px-4 py-2 text-sm text-yellow-600 dark:text-yellow-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-left" role="menuitem">
+                                                    <i class="ri-checkbox-circle-line mr-2"></i>
+                                                    Tandai Selesai
+                                                </button>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                             </td>
@@ -376,3 +384,50 @@
 </script>
 @endpush
 @endsection
+<script>
+function markAsSelesai(bankSoalId) {
+    if (!confirm('Apakah Anda yakin ingin menandai bank soal ini sebagai selesai?')) {
+        return;
+    }
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    // Send AJAX request
+    fetch(`/admin/jadwal_ujian/${bankSoalId}/mark-selesai`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success notification
+            const successDiv = document.createElement('div');
+            successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transform transition-all duration-300';
+            successDiv.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i class="ri-checkbox-circle-line"></i>
+                    <span>${data.message}</span>
+                </div>
+            `;
+            document.body.appendChild(successDiv);
+            
+            // Remove notification after 2 seconds and reload page
+            setTimeout(() => {
+                document.body.removeChild(successDiv);
+                window.location.reload();
+            }, 2000);
+        } else {
+            alert('Gagal menandai bank soal sebagai selesai: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat menandai bank soal sebagai selesai');
+    });
+}
+</script>

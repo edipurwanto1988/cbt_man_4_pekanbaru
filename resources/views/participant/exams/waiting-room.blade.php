@@ -337,7 +337,7 @@ function updateParticipantsList(participants) {
                 participantDiv.dataset.nisn = participant.nisn;
                 participantDiv.innerHTML = `
                     <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-purple-100 to-indigo-200 dark:from-purple-900 dark:to-indigo-900 mb-2 overflow-hidden shadow-md border-2 border-white dark:border-gray-700">
-                        <img src="{{ 'https://api.dicebear.com/7.x/big-ears/svg?seed=' . urlencode($participant->siswa->nama_siswa ?? 'Unknown')  }}"
+                        <img src="https://api.dicebear.com/7.x/big-ears/svg?seed=${encodeURIComponent(participant.nama_siswa)}"
                              alt="${participant.nama_siswa}"
                              class="w-full h-full object-cover participant-avatar"
                              onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(participant.nama_siswa)}&background=8B5CF6&color=ffffff&size=64'">

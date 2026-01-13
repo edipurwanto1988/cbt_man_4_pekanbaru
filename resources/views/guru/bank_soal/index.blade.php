@@ -137,9 +137,9 @@
                                                 <i class="ri-eye-line mr-2"></i>
                                                 Lihat Detail
                                             </a>
-                                            <a href="{{ route('guru.pertanyaan_soal.index', $bankSoal->id) }}" class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" role="menuitem">
+                                            <a href="{{ route('guru.pertanyaan_soal.create', $bankSoal->id) }}" class="flex items-center px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700" role="menuitem">
                                                 <i class="ri-add-circle-line mr-2"></i>
-                                                + Soal
+                                                Tambah Soal
                                             </a>
                                             <a href="{{ route('guru.bank_soal.edit', $bankSoal->id) }}" class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" role="menuitem">
                                                 <i class="ri-edit-line mr-2"></i>

@@ -23,8 +23,11 @@ class PertanyaanSoalController extends Controller
         $pertanyaanSoals = PertanyaanSoal::where('bank_soal_id', $bankSoalId)
             ->orderBy('id', 'asc')
             ->get();
+        
+        // Check if user is authenticated as admin or guru
+        $viewPrefix = Auth::guard('admin')->check() ? 'admin' : 'guru';
             
-        return view('guru.pertanyaan_soal.index', compact('bankSoal', 'pertanyaanSoals'));
+        return view($viewPrefix . '.pertanyaan_soal.index', compact('bankSoal', 'pertanyaanSoals'));
     }
 
     /**
@@ -34,7 +37,10 @@ class PertanyaanSoalController extends Controller
     {
         $bankSoal = BankSoal::findOrFail($bankSoalId);
         
-        return view('guru.pertanyaan_soal.create', compact('bankSoal'));
+        // Check if user is authenticated as admin or guru
+        $viewPrefix = Auth::guard('admin')->check() ? 'admin' : 'guru';
+        
+        return view($viewPrefix . '.pertanyaan_soal.create', compact('bankSoal'));
     }
 
     /**
@@ -93,7 +99,10 @@ class PertanyaanSoalController extends Controller
                 $this->saveJawabanBenarSalah($request, $pertanyaanSoal);
             }
             
-            return redirect()->route('guru.pertanyaan_soal.index', $bankSoalId)
+            // Check if user is authenticated as admin or guru
+            $routePrefix = Auth::guard('admin')->check() ? 'admin' : 'guru';
+            
+            return redirect()->route($routePrefix . '.pertanyaan_soal.index', $bankSoalId)
                 ->with('success', 'Pertanyaan Soal berhasil ditambahkan.');
         });
     }
@@ -166,7 +175,10 @@ class PertanyaanSoalController extends Controller
         
         $pertanyaanSoal->load(['bankSoal', 'jawabanSoals']);
         
-        return view('guru.pertanyaan_soal.show', compact('bankSoal', 'pertanyaanSoal'));
+        // Check if user is authenticated as admin or guru
+        $viewPrefix = Auth::guard('admin')->check() ? 'admin' : 'guru';
+        
+        return view($viewPrefix . '.pertanyaan_soal.show', compact('bankSoal', 'pertanyaanSoal'));
     }
 
     /**
@@ -185,7 +197,10 @@ class PertanyaanSoalController extends Controller
         // Load the jawabanSoals relationship
         $pertanyaanSoal->load('jawabanSoals');
         
-        return view('guru.pertanyaan_soal.edit', compact('bankSoal', 'pertanyaanSoal'));
+        // Check if user is authenticated as admin or guru
+        $viewPrefix = Auth::guard('admin')->check() ? 'admin' : 'guru';
+        
+        return view($viewPrefix . '.pertanyaan_soal.edit', compact('bankSoal', 'pertanyaanSoal'));
     }
 
     /**
@@ -262,7 +277,10 @@ class PertanyaanSoalController extends Controller
                 $this->saveJawabanBenarSalah($request, $pertanyaanSoal);
             }
             
-            return redirect()->route('guru.pertanyaan_soal.index', $bankSoalId)
+            // Check if user is authenticated as admin or guru
+            $routePrefix = Auth::guard('admin')->check() ? 'admin' : 'guru';
+            
+            return redirect()->route($routePrefix . '.pertanyaan_soal.index', $bankSoalId)
                 ->with('success', 'Pertanyaan Soal berhasil diperbarui.');
         });
     }
@@ -287,7 +305,10 @@ class PertanyaanSoalController extends Controller
         
         $pertanyaanSoal->delete();
         
-        return redirect()->route('guru.pertanyaan_soal.index', $bankSoalId)
+        // Check if user is authenticated as admin or guru
+        $routePrefix = Auth::guard('admin')->check() ? 'admin' : 'guru';
+        
+        return redirect()->route($routePrefix . '.pertanyaan_soal.index', $bankSoalId)
             ->with('success', 'Pertanyaan Soal berhasil dihapus.');
     }
     
@@ -324,7 +345,10 @@ class PertanyaanSoalController extends Controller
                 $pertanyaanSoal->delete();
             }
             
-            return redirect()->route('guru.pertanyaan_soal.index', $bankSoalId)
+            // Check if user is authenticated as admin or guru
+            $routePrefix = Auth::guard('admin')->check() ? 'admin' : 'guru';
+            
+            return redirect()->route($routePrefix . '.pertanyaan_soal.index', $bankSoalId)
                 ->with('success', count($selectedItems) . ' Pertanyaan Soal berhasil dihapus.');
         });
     }

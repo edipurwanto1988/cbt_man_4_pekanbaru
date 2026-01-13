@@ -1014,4 +1014,35 @@ public function unblockParticipant(Request $request)
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+    /**
+     * Mark bank soal as selesai (finished).
+     */
+    public function markAsSelesai($id)
+    {
+        try {
+            $bankSoal = BankSoal::findOrFail($id);
+            
+            // Validate that the bank soal is currently aktif
+            if ($bankSoal->status !== 'aktif') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hanya bank soal dengan status aktif yang dapat ditandai selesai. Status saat ini: ' . $bankSoal->status,
+                ], 400);
+            }
+            
+            // Update status to selesai
+            $bankSoal->status = 'selesai';
+            $bankSoal->save();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Bank soal berhasil ditandai sebagai selesai',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menandai bank soal sebagai selesai: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

@@ -80,7 +80,7 @@ class ExamController extends Controller
                     $exam->can_start = $this->isWithinTimeRange($exam);
                 }
             }
-            
+
             return view('participant.exams.index', compact('availableExams'));
 
         } catch (\Exception $e) {
@@ -170,82 +170,90 @@ class ExamController extends Controller
     }
 
 
- public function endExam(Request $request, $bankSoalId)
-{
-    try {
-        $nisn = Auth::guard('siswa')->user()->nisn;
-        $bankSoal = BankSoal::findOrFail($bankSoalId);
-        
-        $participant = PosttestPeserta::where('bank_soal_id', $bankSoalId)
-            ->where('nisn', $nisn)
-            ->firstOrFail();
+    public function endExam(Request $request, $bankSoalId)
+    {
+        try {
+            $nisn = Auth::guard('siswa')->user()->nisn;
+            $bankSoal = BankSoal::findOrFail($bankSoalId);
 
-        // Ambil semua log jawaban peserta untuk ujian ini
-        $logs = PosttestLog::where('bank_soal_id', $bankSoalId)
-            ->where('nisn', $nisn)
-            ->get();
+            $participant = PosttestPeserta::where('bank_soal_id', $bankSoalId)
+                ->where('nisn', $nisn)
+                ->firstOrFail();
 
-        // Hitung statistik dari log
-        $total_benar = $logs->where('jawaban_benar_salah', 1)->count();
-        $total_salah = $logs->where('jawaban_benar_salah', 0)->where('jawaban_esai', '!=', null)->count();
-        $total_kosong = $logs->where('jawaban_pilihan', null)->where('jawaban_esai', null)->count();
-        
-        // Hitung skor berdasarkan bobot soal
-        $skor = $logs->sum(function($log) {
-            if ($log->is_benar == 1) {
-                return $log->pertanyaan->bobot ?? 0; // Asumsi ada relasi ke pertanyaan
+            // Ambil semua log jawaban peserta untuk ujian ini
+            $logs = PosttestLog::where('bank_soal_id', $bankSoalId)
+                ->where('nisn', $nisn)
+                ->get();
+
+            // Hitung statistik dari log
+            $total_benar = $logs->where('jawaban_benar_salah', 1)->count();
+            $total_salah = $logs->where('jawaban_benar_salah', 0)->where('jawaban_esai', '!=', null)->count();
+            $total_kosong = $logs->where('jawaban_pilihan', null)->where('jawaban_esai', null)->count();
+
+            // Hitung skor berdasarkan bobot soal
+            $skor = $logs->sum(function ($log) {
+                if ($log->is_benar == 1) {
+                    return $log->pertanyaan->bobot ?? 0; // Asumsi ada relasi ke pertanyaan
+                }
+                return 0;
+            });
+
+            // Hitung durasi pengerjaan
+            $waktuMulai = Carbon::parse($participant->start_time);
+            $waktuSekarang = Carbon::now();
+            $durasi_detik = $waktuMulai->diffInSeconds($waktuSekarang);
+
+            // Format waktu pengerjaan menggunakan diff()->format() seperti kode lama
+            $waktuPengerjaan = $waktuMulai->diff($waktuSekarang)->format('%H:%I:%S');
+
+            // Simpan atau update hasil posttest
+            $postTest = PosttestHasil::updateOrCreate(
+                [
+                    'bank_soal_id' => $bankSoalId,
+                    'nisn' => $nisn
+                ],
+                [
+                    'pertanyaan_id' => $bankSoalId, // Sesuaikan dengan kebutuhan
+                    'total_benar' => $total_benar,
+                    'total_salah' => $total_salah,
+                    'total_kosong' => $total_kosong,
+                    'skor' => $skor,
+                    'durasi_detik' => $durasi_detik
+                ]
+            );
+
+            if ($participant->status !== 'finished') {
+                // Update status peserta menjadi selesai
+                $participant->update([
+                    'status' => 'finished',
+                    'end_time' => Carbon::now()
+                ]);
             }
-            return 0;
-        });
 
-      // Hitung durasi pengerjaan
-        $waktuMulai = Carbon::parse($participant->waktu_mulai);
-        $waktuSekarang = Carbon::now();
-        $durasi_detik = $waktuMulai->diffInSeconds($waktuSekarang);
-        
-        // Format waktu pengerjaan menggunakan diff()->format() seperti kode lama
-        $waktuPengerjaan = $waktuMulai->diff($waktuSekarang)->format('%H:%I:%S');
 
-        // Simpan atau update hasil posttest
-        $postTest = PosttestHasil::updateOrCreate(
-            [
-                'bank_soal_id' => $bankSoalId,
-                'nisn' => $nisn
-            ],
-            [
-                'pertanyaan_id' => $bankSoalId, // Sesuaikan dengan kebutuhan
-                'total_benar' => $total_benar,
-                'total_salah' => $total_salah,
-                'total_kosong' => $total_kosong,
-                'skor' => $skor,
-                'durasi_detik' => $durasi_detik
-            ]
-        );
+            $waktuPengerjaan = $waktuMulai
+                ->diffAsCarbonInterval($participant->end_time)
+                ->cascade()
+                ->format('%H:%I:%S');
 
-        // Update status peserta menjadi selesai
-        $participant->update([
-            'status' => 'finished',
-            'waktu_selesai' => Carbon::now()
-        ]);
 
-        // Hitung total questions
-        $totalQuestions = $total_salah + $total_benar + $total_kosong;
-        $answeredQuestions = $totalQuestions - $total_kosong;
-        
-         
+            // Hitung total questions
+            $totalQuestions = $bankSoal->pertanyaanSoals->count();
+            $answeredQuestions = $totalQuestions - $total_kosong;
 
-        // Redirect ke halaman finish view
-        return view('participant.exams.finished', [
-            'bankSoal' => $bankSoal,
-            'totalQuestions' => $totalQuestions,
-            'answeredQuestions' => $answeredQuestions,
-            'timeSpent' => $waktuPengerjaan,
-            'resultUrl' => route('participant.exams.result', [$bankSoalId])
-        ]);
-    } catch (\Exception $e) {
-        return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+
+            // Redirect ke halaman finish view
+            return view('participant.exams.finished', [
+                'bankSoal' => $bankSoal,
+                'totalQuestions' => $totalQuestions,
+                'answeredQuestions' => $answeredQuestions,
+                'timeSpent' => $waktuPengerjaan,
+                'resultUrl' => route('participant.exams.result', [$bankSoalId])
+            ]);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
-}
     /**
      * Take a specific exam
      */
@@ -633,7 +641,18 @@ class ExamController extends Controller
                     ->first();
             }
 
-            return view('participant.exams.take-live', compact('pretestSession', 'currentQuestion', 'participant'));
+            $pretestLog = PretestLog::where('session_id', $sessionId)
+                ->where('nisn', $nisn)
+                ->where('pertanyaan_id', $currentQuestion->id ?? 0)
+                ->first();
+
+            $currentAnswer = null;
+            if ($pretestLog) {
+                $currentAnswer = JawabanSoal::where('id', $pretestLog->jawaban_id)
+                    ->first();
+            }
+
+            return view('participant.exams.take-live', compact('pretestSession', 'currentQuestion', 'participant', 'currentAnswer'));
 
         } catch (\Exception $e) {
             return redirect()->route('participant.exams.index')
@@ -686,16 +705,28 @@ class ExamController extends Controller
                     $answers[$jawaban->opsi] = $jawaban->isi_jawaban;
                 }
 
+                $pretestLog = PretestLog::where('session_id', $sessionId)
+                    ->where('nisn', $nisn)
+                    ->where('pertanyaan_id', $currentQuestion->id ?? 0)
+                    ->first();
+
+                $currentAnswer = null;
+                if ($pretestLog) {
+                    $currentAnswer = JawabanSoal::where('id', $pretestLog->jawaban_id)
+                        ->first();
+                }
+
                 $questionData = [
                     'id' => $currentQuestion->id,
                     'pertanyaan' => $currentQuestion->pertanyaan,
                     'answers' => $currentQuestion->jawabanSoals,
                     'max_time' => $pretestSession->bankSoal->max_time ?? 30,
                     'start_time' => $soalTimer->waktu_mulai ?? null,
+                    'current_answer' => $currentAnswer,
                     'timer_id' => $soalTimer->id ?? null,
                 ];
             }
-
+            
             // Create response with cookie
             $response = response()->json([
                 'success' => true,
@@ -811,7 +842,7 @@ class ExamController extends Controller
             $totalScore = $baseScore + $bonusScore;
 
 
-             dd(now()->toDateTimeString());
+
             // Create pretest log
             PretestLog::create([
                 'nisn' => $nisn,
@@ -1045,119 +1076,119 @@ class ExamController extends Controller
         }
     }
 
-  public function autoSaveAnswer($bankSoalId, Request $request)
-{
-    try {
-        // =============================
-        // 1. Ambil user siswa login
-        // =============================
-        $nisn = Auth::guard('siswa')->user()->nisn;
+    public function autoSaveAnswer($bankSoalId, Request $request)
+    {
+        try {
+            // =============================
+            // 1. Ambil user siswa login
+            // =============================
+            $nisn = Auth::guard('siswa')->user()->nisn;
 
-        // =============================
-        // 2. Cek peserta
-        // =============================
-        $participant = PosttestPeserta::where('bank_soal_id', $bankSoalId)
-            ->where('nisn', $nisn)
-            ->first();
+            // =============================
+            // 2. Cek peserta
+            // =============================
+            $participant = PosttestPeserta::where('bank_soal_id', $bankSoalId)
+                ->where('nisn', $nisn)
+                ->first();
 
-        if (!$participant) {
+            if (!$participant) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak terdaftar sebagai peserta'
+                ], 403);
+            }
+
+            // =============================
+            // 3. Validasi request (FLEKSIBEL)
+            // =============================
+            $request->validate([
+                'question_id' => 'required|exists:pertanyaan_soals,id',
+                'answer' => 'nullable|string',
+                'duration' => 'nullable|numeric|min:0'
+            ]);
+
+            $questionId = $request->question_id;
+            $answer = $request->answer;
+            $duration = $request->duration ?? 0;
+
+            // =============================
+            // 4. Deteksi jenis soal
+            // =============================
+            $correctAnswer = DB::table('jawaban_soals')
+                ->where('pertanyaan_id', $questionId)
+                ->where('is_benar', true)
+                ->first();
+
+            $isMultipleChoice = $correctAnswer !== null;
+
+            // =============================
+            // 5. Hitung skor (HANYA PG)
+            // =============================
+            $isCorrect = null;
+            $score = 0;
+
+            if ($isMultipleChoice && $answer !== null) {
+                $isCorrect = $correctAnswer->opsi === $answer;
+
+                $totalQuestions = DB::table('pertanyaan_soals')
+                    ->where('bank_soal_id', $bankSoalId)
+                    ->count();
+
+                $questionScore = $totalQuestions > 0
+                    ? (100 / $totalQuestions)
+                    : 0;
+
+                $score = $isCorrect ? $questionScore : 0;
+            }
+
+            // =============================
+            // 6. Cek log existing
+            // =============================
+            $existingLog = PosttestLog::where('nisn', $nisn)
+                ->where('bank_soal_id', $bankSoalId)
+                ->where('pertanyaan_id', $questionId)
+                ->first();
+
+            // =============================
+            // 7. Simpan jawaban
+            // =============================
+            $payload = [
+                'jawaban_pilihan' => $isMultipleChoice ? $answer : null,
+                'jawaban_esai' => !$isMultipleChoice ? $answer : null,
+                'is_benar' => $isCorrect,
+                'skor' => $score,
+                'durasi_detik' => $duration,
+            ];
+
+            if ($existingLog) {
+                $existingLog->update($payload);
+            } else {
+                PosttestLog::create(array_merge($payload, [
+                    'nisn' => $nisn,
+                    'bank_soal_id' => $bankSoalId,
+                    'pertanyaan_id' => $questionId,
+                ]));
+            }
+
+            // =============================
+            // 8. Response sukses
+            // =============================
+            return response()->json([
+                'success' => true,
+                'message' => 'Jawaban berhasil disimpan',
+                'type' => $isMultipleChoice ? 'pilihan_ganda' : 'esai',
+                'is_correct' => $isCorrect,
+                'score' => $score
+            ]);
+
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Anda tidak terdaftar sebagai peserta'
-            ], 403);
+                'error' => 'Terjadi kesalahan',
+                'detail' => $e->getMessage()
+            ], 500);
         }
-
-        // =============================
-        // 3. Validasi request (FLEKSIBEL)
-        // =============================
-        $request->validate([
-            'question_id' => 'required|exists:pertanyaan_soals,id',
-            'answer'      => 'nullable|string',
-            'duration'    => 'nullable|numeric|min:0'
-        ]);
-
-        $questionId = $request->question_id;
-        $answer     = $request->answer;
-        $duration   = $request->duration ?? 0;
-
-        // =============================
-        // 4. Deteksi jenis soal
-        // =============================
-        $correctAnswer = DB::table('jawaban_soals')
-            ->where('pertanyaan_id', $questionId)
-            ->where('is_benar', true)
-            ->first();
-
-        $isMultipleChoice = $correctAnswer !== null;
-
-        // =============================
-        // 5. Hitung skor (HANYA PG)
-        // =============================
-        $isCorrect = null;
-        $score = 0;
-
-        if ($isMultipleChoice && $answer !== null) {
-            $isCorrect = $correctAnswer->opsi === $answer;
-
-            $totalQuestions = DB::table('pertanyaan_soals')
-                ->where('bank_soal_id', $bankSoalId)
-                ->count();
-
-            $questionScore = $totalQuestions > 0
-                ? (100 / $totalQuestions)
-                : 0;
-
-            $score = $isCorrect ? $questionScore : 0;
-        }
-
-        // =============================
-        // 6. Cek log existing
-        // =============================
-        $existingLog = PosttestLog::where('nisn', $nisn)
-            ->where('bank_soal_id', $bankSoalId)
-            ->where('pertanyaan_id', $questionId)
-            ->first();
-
-        // =============================
-        // 7. Simpan jawaban
-        // =============================
-        $payload = [
-            'jawaban_pilihan' => $isMultipleChoice ? $answer : null,
-            'jawaban_esai'    => !$isMultipleChoice ? $answer : null,
-            'is_benar'        => $isCorrect,
-            'skor'            => $score,
-            'durasi_detik'    => $duration,
-        ];
-
-        if ($existingLog) {
-            $existingLog->update($payload);
-        } else {
-            PosttestLog::create(array_merge($payload, [
-                'nisn'          => $nisn,
-                'bank_soal_id'  => $bankSoalId,
-                'pertanyaan_id' => $questionId,
-            ]));
-        }
-
-        // =============================
-        // 8. Response sukses
-        // =============================
-        return response()->json([
-            'success'    => true,
-            'message'    => 'Jawaban berhasil disimpan',
-            'type'       => $isMultipleChoice ? 'pilihan_ganda' : 'esai',
-            'is_correct' => $isCorrect,
-            'score'      => $score
-        ]);
-
-    } catch (\Throwable $e) {
-        return response()->json([
-            'success' => false,
-            'error'   => 'Terjadi kesalahan',
-            'detail'  => $e->getMessage()
-        ], 500);
     }
-}
 
 
     /**
