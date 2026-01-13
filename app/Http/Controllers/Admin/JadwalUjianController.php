@@ -1054,18 +1054,33 @@ public function unblockParticipant(Request $request)
         $bankSoal = BankSoal::findOrFail($bankSoalId);
         
         // Get all posttest results for this bank soal with participant data
-        $results = PosttestHasil::where('posttest_hasil.bank_soal_id', $bankSoalId)
+        $results = DB::table('posttest_hasil')
             ->leftJoin('posttest_peserta', function($join) use ($bankSoalId) {
                 $join->on('posttest_hasil.nisn', '=', 'posttest_peserta.nisn')
                      ->where('posttest_peserta.bank_soal_id', '=', $bankSoalId);
             })
-            ->select('posttest_hasil.*', 
-                     'posttest_peserta.status', 
-                     'posttest_peserta.cheat_status', 
-                     'posttest_peserta.cheat_reason')
-            ->with('siswa')
+            ->leftJoin('siswa', 'posttest_hasil.nisn', '=', 'siswa.nisn')
+            ->where('posttest_hasil.bank_soal_id', $bankSoalId)
+            ->select(
+                'posttest_hasil.id',
+                'posttest_hasil.nisn',
+                'posttest_hasil.total_benar',
+                'posttest_hasil.total_salah',
+                'posttest_hasil.total_kosong',
+                'posttest_hasil.nilai_akhir',
+                'posttest_hasil.waktu_pengerjaan',
+                'posttest_peserta.status',
+                'posttest_peserta.cheat_status',
+                'posttest_peserta.cheat_reason',
+                'siswa.nama_siswa'
+            )
             ->orderBy('posttest_hasil.nilai_akhir', 'desc')
-            ->get();
+            ->get()
+            ->map(function($item) {
+                // Convert to object with siswa relationship structure
+                $item->siswa = (object)['nama_siswa' => $item->nama_siswa];
+                return $item;
+            });
         
         return view('admin.jadwal_ujian.posttest-hasil', compact('bankSoal', 'results'));
     }

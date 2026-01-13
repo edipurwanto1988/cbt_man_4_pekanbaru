@@ -45,7 +45,9 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Rata-rata Nilai</p>
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ number_format($results->avg('nilai_akhir'), 2) }}</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">
+                        {{ $results->whereNotNull('nilai_akhir')->count() > 0 ? number_format($results->whereNotNull('nilai_akhir')->avg('nilai_akhir'), 2) : '0.00' }}
+                    </p>
                 </div>
                 <div class="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-full">
                     <i class="ri-bar-chart-line text-yellow-600 dark:text-yellow-400 text-xl"></i>
@@ -57,7 +59,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Nilai Tertinggi</p>
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $results->max('nilai_akhir') ?? 0 }}</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $results->whereNotNull('nilai_akhir')->max('nilai_akhir') ?? 0 }}</p>
                 </div>
                 <div class="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-full">
                     <i class="ri-trophy-line text-purple-600 dark:text-purple-400 text-xl"></i>
