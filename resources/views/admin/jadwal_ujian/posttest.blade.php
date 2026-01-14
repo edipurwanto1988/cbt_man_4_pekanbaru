@@ -67,6 +67,9 @@
                                         $hasActiveParticipants = \App\Models\PosttestPeserta::where('bank_soal_id', $bankSoal->id)
                                             ->whereIn('status', ['active', 'ongoing'])
                                             ->exists();
+                                        
+                                        $hasResults = \App\Models\PosttestHasil::where('bank_soal_id', $bankSoal->id)
+                                            ->exists();
                                     @endphp
                                     
                                     @if(!$hasActiveParticipants)
@@ -76,6 +79,12 @@
                                     @else
                                         <a href="{{ route('admin.jadwal_ujian.posttest.live', $bankSoal->id) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600">
                                             <i class="ri-play-circle-line mr-2"></i> Monitoring
+                                        </a>
+                                    @endif
+                                    
+                                    @if($hasResults)
+                                        <a href="{{ route('admin.jadwal_ujian.posttest.hasil', $bankSoal->id) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600">
+                                            <i class="ri-file-list-3-line mr-2"></i> Lihat Hasil
                                         </a>
                                     @endif
                                 </div>

@@ -136,14 +136,19 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-white">{{ $hasil->nilai_akhir }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $hasil->waktu_pengerjaan }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                @if($hasil->cheat_status === 'blocked')
-                                    <button onclick="unblockParticipant('{{ $hasil->nisn }}', '{{ $bankSoal->id }}')"
-                                        class="inline-flex items-center px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-medium rounded-lg transition">
-                                        <i class="ri-lock-unlock-line mr-1"></i> Unblock
-                                    </button>
-                                @else
-                                    <span class="text-gray-400 dark:text-gray-500">-</span>
-                                @endif
+                                <div class="flex items-center gap-2">
+                                    <a href="{{ route('admin.jadwal_ujian.posttest.detail', [$bankSoal->id, $hasil->nisn]) }}"
+                                        class="inline-flex items-center px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-lg transition">
+                                        <i class="ri-file-list-line mr-1"></i> Lihat Detail
+                                    </a>
+                                    
+                                    @if($hasil->cheat_status === 'blocked')
+                                        <button onclick="unblockParticipant('{{ $hasil->nisn }}', '{{ $bankSoal->id }}')"
+                                            class="inline-flex items-center px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-medium rounded-lg transition">
+                                            <i class="ri-lock-unlock-line mr-1"></i> Unblock
+                                        </button>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty

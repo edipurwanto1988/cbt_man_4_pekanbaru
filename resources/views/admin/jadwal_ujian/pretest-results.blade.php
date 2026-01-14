@@ -10,10 +10,98 @@
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Hasil Pretest: {{ $session->bankSoal->nama_bank }}</h1>
             <p class="text-gray-600 dark:text-gray-400">Sesi: {{ $session->id }}</p>
         </div>
-        <a href="{{ route('admin.jadwal_ujian.pretest') }}" class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-            <i class="ri-arrow-left-line mr-2"></i>Kembali
+        <a href="{{ route('admin.jadwal_ujian.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-200">
+            <i class="ri-arrow-left-line mr-2"></i>Kembali ke Jadwal Ujian
         </a>
     </div>
+
+    <!-- Podium - Top 3 -->
+    @if($rankings->count() > 0)
+    <div class="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-lg p-8">
+        <h2 class="text-2xl font-bold text-center text-gray-900 dark:text-white mb-8">
+            🏆 Top 3 Peserta Terbaik
+        </h2>
+        
+        <div class="flex items-end justify-center gap-6 max-w-4xl mx-auto">
+            <!-- 2nd Place -->
+            @if(isset($rankings[1]))
+            <div class="flex flex-col items-center justify-end" style="flex: 0 0 280px;">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full transform hover:scale-105 transition-transform duration-200">
+                    <div class="flex flex-col items-center">
+                        <div class="relative mb-3">
+                            <img src="https://api.dicebear.com/7.x/big-ears/svg?seed={{ urlencode($rankings[0]->siswa->nama_siswa ?? 'Unknown') }}&background=6366f1&color=ffffff&size=32" 
+                                 alt="{{ $rankings[1]->siswa->nama_siswa }}"
+                                 class="w-20 h-20 rounded-full border-4 border-gray-300 dark:border-gray-600 object-cover"
+                                 onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($rankings[1]->siswa->nama_siswa ?? 'Unknown') }}&background=c0c0c0&color=ffffff&size=96'">
+                            <div class="absolute -top-2 -right-2 bg-gray-400 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm shadow-md">
+                                2
+                            </div>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white text-center line-clamp-2">{{ $rankings[1]->siswa->nama_siswa }}</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ $rankings[1]->nisn }}</p>
+                        <div class="mt-3 bg-gray-100 dark:bg-gray-700 rounded-lg px-4 py-2 w-full text-center">
+                            <p class="text-2xl font-bold text-gray-700 dark:text-gray-300">{{ $rankings[1]->total_poin }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">poin</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            <!-- 1st Place -->
+            @if(isset($rankings[0]))
+            <div class="flex flex-col items-center justify-end -mb-8" style="flex: 0 0 300px;">
+                <div class="mb-10 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl shadow-2xl p-6 w-full transform hover:scale-105 transition-transform duration-200">
+                    <div class="flex flex-col items-center">
+                        <div class="relative mb-3">
+                            <img src="https://api.dicebear.com/7.x/big-ears/svg?seed={{ urlencode($results[0]->siswa->nama_siswa ?? 'Unknown') }}&background=6366f1&color=ffffff&size=32" 
+                                 alt="{{ $rankings[0]->siswa->nama_siswa }}"
+                                 class="w-24 h-24 rounded-full border-4 border-yellow-300 object-cover"
+                                 onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($rankings[0]->siswa->nama_siswa ?? 'Unknown') }}&background=ffd700&color=ffffff&size=96'">
+                            <div class="absolute -top-2 -right-2 bg-yellow-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-lg">
+                                <i class="ri-trophy-fill text-xl"></i>
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-extrabold text-gray-900 text-center line-clamp-2">{{ $rankings[0]->siswa->nama_siswa }}</h3>
+                        <p class="text-sm text-gray-700 mt-1">{{ $rankings[0]->nisn }}</p>
+                        <div class="mt-3 bg-yellow-300 rounded-lg px-6 py-3 w-full text-center">
+                            <p class="text-3xl font-extrabold text-gray-900">{{ $rankings[0]->total_poin }}</p>
+                            <p class="text-xs text-gray-700 font-semibold">poin</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            <!-- 3rd Place -->
+            @if(isset($rankings[2]))
+            <div class="flex flex-col items-center justify-end" style="flex: 0 0 280px;">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full transform hover:scale-105 transition-transform duration-200">
+                    <div class="flex flex-col items-center">
+                        <div class="relative mb-3">
+                            <img src="{{ $rankings[2]->siswa->foto ? asset('storage/uploads/siswa/' . $rankings[2]->siswa->foto) : 'https://ui-avatars.com/api/?name=' . urlencode($rankings[2]->siswa->nama_siswa ?? 'Unknown') . '&background=cd7f32&color=ffffff&size=96' }}" 
+                                 alt="{{ $rankings[2]->siswa->nama_siswa }}"
+                                 class="w-20 h-20 rounded-full border-4 border-amber-600 dark:border-amber-700 object-cover"
+                                 onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($rankings[2]->siswa->nama_siswa ?? 'Unknown') }}&background=cd7f32&color=ffffff&size=96'">
+                            <div class="absolute -top-2 -right-2 bg-amber-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm shadow-md">
+                                3
+                            </div>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white text-center line-clamp-2">{{ $rankings[2]->siswa->nama_siswa }}</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ $rankings[2]->nisn }}</p>
+                        <div class="mt-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg px-4 py-2 w-full text-center">
+                            <p class="text-2xl font-bold text-amber-700 dark:text-amber-300">{{ $rankings[2]->total_poin }}</p>
+                            <p class="text-xs text-amber-600 dark:text-amber-400">poin</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+        </div>
+        
+        
+    </div>
+    @endif
 
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -33,7 +121,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Rata-rata Poin</p>
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $rankings->avg('total_poin') }}</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ number_format($rankings->avg('total_poin'), 1) }}</p>
                 </div>
                 <div class="bg-green-100 dark:bg-green-900/30 p-3 rounded-full">
                     <i class="ri-bar-chart-line text-green-600 dark:text-green-400 text-xl"></i>
@@ -57,7 +145,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Waktu Rata-rata</p>
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $rankings->avg('total_waktu_respon') }}s</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ number_format($rankings->avg('total_waktu_respon'), 1) }}s</p>
                 </div>
                 <div class="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-full">
                     <i class="ri-time-line text-purple-600 dark:text-purple-400 text-xl"></i>

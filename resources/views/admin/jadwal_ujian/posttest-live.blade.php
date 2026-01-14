@@ -12,10 +12,23 @@
                     {{ $bankSoal->mataPelajaran->nama_mapel ?? '-' }}
                 </p>
             </div>
-            <a href="{{ route('admin.jadwal_ujian.index') }}"
-                class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                <i class="ri-arrow-left-line mr-2"></i>Kembali
-            </a>
+            <div class="flex items-center gap-3">
+                @php
+                    $hasResults = \App\Models\PosttestHasil::where('bank_soal_id', $bankSoal->id)->exists();
+                @endphp
+                
+                @if($hasResults)
+                    <a href="{{ route('admin.jadwal_ujian.posttest.hasil', $bankSoal->id) }}"
+                        class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200">
+                        <i class="ri-file-list-3-line mr-2"></i>Lihat Hasil
+                    </a>
+                @endif
+                
+                <a href="{{ route('admin.jadwal_ujian.index') }}"
+                    class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                    <i class="ri-arrow-left-line mr-2"></i>Kembali
+                </a>
+            </div>
         </div>
 
         <!-- Bank Soal Info -->
@@ -207,7 +220,7 @@
                                 </td>
 
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                    {{ $participant->hasil->nilai_akhir }}
+                                    {{ $participant->hasil->nilai_akhir ?? '-' }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                     @if($participant->cheat_status === 'blocked')

@@ -353,6 +353,12 @@ class ExamController extends Controller
                     // Set remaining time to initial value
                     $remainingTime = $initialSisaDetik;
                 } else {
+                    // Check if participant is blocked for cheating
+                    if ($participant->cheat_status === 'blocked') {
+                        return redirect()->route('participant.exams.index')
+                            ->with('error', 'Anda telah diblokir karena melakukan kecurangan: ' . ($participant->cheat_reason ?? 'Pelanggaran terdeteksi'));
+                    }
+
                     // Check if exam is already finished or time is up
                     if ($participant->sisa_detik <= 0 || $participant->status === 'finished') {
                         return redirect()->route('participant.exams.index')
@@ -902,6 +908,15 @@ class ExamController extends Controller
             // Get answers and durations
             $answers = json_decode($request->answers, true) ?: [];
             $durations = json_decode($request->durations, true) ?: [];
+            
+            // Debug logging
+            \Log::info('Posttest Submit Debug', [
+                'nisn' => $nisn,
+                'bank_soal_id' => $bankSoalId,
+                'answers_raw' => $request->answers,
+                'answers_decoded' => $answers,
+                'durations' => $durations
+            ]);
 
             if (empty($answers)) {
                 return redirect()->route('participant.exams.index')
@@ -916,17 +931,64 @@ class ExamController extends Controller
             $totalScore = 0;
             $totalDurationSeconds = 0;
 
-            foreach ($answers as $questionId => $selectedOption) {
-                $correctAnswer = DB::table('jawaban_soals')
-                    ->where('pertanyaan_id', $questionId)
-                    ->where('is_benar', true)
-                    ->first();
-
-                $isCorrect = $correctAnswer && $correctAnswer->opsi === $selectedOption;
-
-                if ($isCorrect) {
-                    $correct++;
-                    $totalScore += (100 / max(1, $totalQuestions));
+            foreach ($answers as $questionId => $answerData) {
+                // Get the question to determine its type
+                $question = PertanyaanSoal::find($questionId);
+                
+                if (!$question) {
+                    continue;
+                }
+                
+                $isCorrect = false;
+                $score = 0;
+                $jawabanPilihan = null;
+                $jawabanBenarSalah = null;
+                $jawabanEsai = null;
+                
+                // Handle different answer formats (old and new)
+                $answerValue = is_array($answerData) ? ($answerData['answer'] ?? null) : $answerData;
+                $answerType = is_array($answerData) ? ($answerData['type'] ?? $question->jenis_soal) : $question->jenis_soal;
+                
+                \Log::info('Processing question', [
+                    'question_id' => $questionId,
+                    'jenis_soal' => $question->jenis_soal,
+                    'answer_data' => $answerData,
+                    'answer_value' => $answerValue,
+                    'answer_type' => $answerType
+                ]);
+                
+                if ($question->jenis_soal === 'esai') {
+                    // Essay question - save the text answer
+                    $jawabanEsai = $answerValue;
+                    // Essay questions need manual grading, so score is 0 initially
+                    $score = 0;
+                    $isCorrect = false;
+                    
+                    \Log::info('Essay answer detected', [
+                        'jawaban_esai' => $jawabanEsai
+                    ]);
+                    
+                } elseif ($question->jenis_soal === 'benar_salah') {
+                    // True/False question
+                    $jawabanBenarSalah = (int)$answerValue;
+                    $isCorrect = ($question->jawaban_benar_salah == $answerValue);
+                    
+                    if ($isCorrect) {
+                        $correct++;
+                        $score = $question->poin_soal ?? (100 / max(1, $totalQuestions));
+                        $totalScore += $score;
+                    }
+                    
+                } else {
+                    // Multiple choice question
+                    $jawabanPilihan = $answerValue;
+                    $isCorrect = ($question->jawaban_benar === $answerValue);
+                    
+                    if ($isCorrect) {
+                        $correct++;
+                        $score = $question->poin_soal ?? (100 / max(1, $totalQuestions));
+                        $totalScore += $score;
+                    }
                 }
 
                 $duration = isset($durations[$questionId]) ? intval($durations[$questionId]) : 0;
@@ -937,10 +999,10 @@ class ExamController extends Controller
                     'nisn' => $nisn,
                     'bank_soal_id' => $bankSoalId,
                     'pertanyaan_id' => $questionId,
-                    'jawaban_pilihan' => $selectedOption,
-                    'jawaban_benar_salah' => $isCorrect ? 1 : 0,
-                    'jawaban_esai' => null,
-                    'skor' => $isCorrect ? (100 / max(1, $totalQuestions)) : 0,
+                    'jawaban_pilihan' => $jawabanPilihan,
+                    'jawaban_benar_salah' => $jawabanBenarSalah,
+                    'jawaban_esai' => $jawabanEsai,
+                    'skor' => $score,
                     'is_benar' => $isCorrect ? 1 : 0,
                     'durasi_detik' => $duration,
                 ]);
@@ -1061,8 +1123,9 @@ class ExamController extends Controller
                 return response()->json(['error' => 'Anda tidak terdaftar sebagai peserta'], 403);
             }
 
-            $participant->update(attributes: [
-                'cheat_status' => 'blocked'
+            $participant->update([
+                'cheat_status' => 'blocked',
+                'cheat_reason' => 'Meninggalkan halaman ujian (tab switching, minimize, atau close app)'
             ]);
 
             return response()->json([

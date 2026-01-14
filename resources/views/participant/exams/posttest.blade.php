@@ -13,6 +13,43 @@
         : Carbon::now()->format('Y-m-d H:i:s');
 @endphp
 
+@if($participant && $participant->cheat_status === 'blocked')
+    {{-- Blocked Screen --}}
+    <div class="container-fluid">
+        <div class="row min-h-screen flex items-center justify-center">
+            <div class="col-12 max-w-2xl mx-auto">
+                <div class="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 dark:border-red-700 rounded-xl p-8 shadow-xl">
+                    <div class="text-center">
+                        <div class="mb-6">
+                            <i class="ri-error-warning-line text-6xl text-red-600 dark:text-red-400"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold text-red-900 dark:text-red-200 mb-4">
+                            Akses Diblokir
+                        </h2>
+                        <p class="text-lg text-red-800 dark:text-red-300 mb-6">
+                            Anda telah diblokir dari ujian ini karena melakukan kecurangan.
+                        </p>
+                        <div class="bg-white dark:bg-gray-800 rounded-lg p-4 mb-6">
+                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Alasan:</p>
+                            <p class="text-base text-gray-900 dark:text-white font-semibold">
+                                {{ $participant->cheat_reason ?? 'Pelanggaran terdeteksi' }}
+                            </p>
+                        </div>
+                        <p class="text-sm text-red-700 dark:text-red-400 mb-6">
+                            Silakan hubungi pengawas ujian untuk informasi lebih lanjut.
+                        </p>
+                        <a href="{{ route('participant.exams.index') }}" 
+                           class="inline-block px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200">
+                            <i class="ri-arrow-left-line mr-2"></i>
+                            Kembali ke Daftar Ujian
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@else
+    {{-- Normal Test Interface --}}
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
@@ -110,6 +147,7 @@
 @else
     <div class="space-y-3">
         <textarea 
+            id="essay-answer"
             name="answer" 
             rows="6" 
             class="w-full p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 resize-none"
@@ -158,6 +196,8 @@
         @csrf
         <input type="hidden" id="current-question-id" name="current_question_id"
             value="{{ $questions->first()->id ?? '' }}">
+        <input type="hidden" id="current-question-type" name="current_question_type"
+            value="{{ $questions->first()->jenis_soal ?? '' }}">
         <input type="hidden" id="answers-data" name="answers" value="">
         <input type="hidden" id="durations-data" name="durations" value="">
     </form>
@@ -235,20 +275,65 @@
                     })
                         .then(res => {
                             if (!res.ok) {
-                                alert("Terjadi kesalahan saat mencatat perpindahan tab! " + res.status);
                                 throw new Error("HTTP error " + res.status);
                             }
                             return res.json();
                         })
                         .then(data => {
                             console.log("Pindah tab tercatat:", data);
+                            
+                            // Immediately show blocking UI
+                            showBlockedScreen();
                         })
                         .catch(err => {
-                            alert("Gagal mengirim data ke server! Pastikan koneksi stabil.");
                             console.error("Gagal kirim:", err);
                         });
                 }
             });
+
+            // Function to show blocked screen
+            function showBlockedScreen() {
+                // Stop all timers
+                clearInterval(timerInterval);
+                clearInterval(saveInterval);
+                clearInterval(updateTimerInterval);
+
+                // Replace entire page content with blocked message
+                document.querySelector('.container-fluid').innerHTML = `
+                    <div class="row min-h-screen flex items-center justify-center">
+                        <div class="col-12 max-w-2xl mx-auto">
+                            <div class="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 dark:border-red-700 rounded-xl p-8 shadow-xl">
+                                <div class="text-center">
+                                    <div class="mb-6">
+                                        <i class="ri-error-warning-line text-6xl text-red-600 dark:text-red-400"></i>
+                                    </div>
+                                    <h2 class="text-3xl font-bold text-red-900 dark:text-red-200 mb-4">
+                                        Akses Diblokir
+                                    </h2>
+                                    <p class="text-lg text-red-800 dark:text-red-300 mb-6">
+                                        Anda telah diblokir dari ujian ini karena melakukan kecurangan.
+                                    </p>
+                                    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 mb-6">
+                                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Alasan:</p>
+                                        <p class="text-base text-gray-900 dark:text-white font-semibold">
+                                            Meninggalkan halaman ujian (tab switching, minimize, atau close app)
+                                        </p>
+                                    </div>
+                                    <p class="text-sm text-red-700 dark:text-red-400 mb-6">
+                                        Silakan hubungi pengawas ujian untuk informasi lebih lanjut.
+                                    </p>
+                                    <a href="/participant/exams" 
+                                       class="inline-block px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200">
+                                        <i class="ri-arrow-left-line mr-2"></i>
+                                        Kembali ke Daftar Ujian
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
 
             // Check if time is already up
             if (remainingTime <= 0) {
@@ -294,15 +379,16 @@
 document.querySelectorAll('textarea[name="answer"]').forEach(textarea => {
       textarea.addEventListener('input', debounce(function (event) {
         const questionId = document.getElementById('current-question-id').value;
-        const value = event.target.value;
-
-        answers[questionId] = value;
+        const answerValue = event.target.value;
+        answers[questionId] = answerValue;
+        
+        console.log('Essay answer typed - Question ID:', questionId, 'Answer:', answerValue);
 
         if (!durations[questionId]) {
             durations[questionId] = Math.floor((Date.now() - startTime) / 1000);
         }
 
-        autoSaveAnswer(questionId, value, durations[questionId]);
+        autoSaveAnswer(questionId, answerValue, durations[questionId]);
         updateQuestionItemStatus(questionId, true);
         document.getElementById('next-btn').disabled = false;
     }, 1000));
@@ -408,15 +494,18 @@ document.querySelectorAll('textarea[name="answer"]').forEach(textarea => {
 
     // Re-attach answer change handler for textarea
     questionContainer.querySelectorAll('textarea[name="answer"]').forEach(textarea => {
-        textarea.addEventListener('input', debounce(function () {
+        textarea.addEventListener('input', debounce(function (event) {
             const questionId = document.getElementById('current-question-id').value;
-            answers[questionId] = this.value;
+            const answerValue = event.target.value;
+            answers[questionId] = answerValue;
+            
+            console.log('Essay answer typed (navigation) - Question ID:', questionId, 'Answer:', answerValue);
 
             if (!durations[questionId]) {
                 durations[questionId] = Math.floor((Date.now() - startTime) / 1000);
             }
 
-            autoSaveAnswer(questionId, this.value, durations[questionId]);
+            autoSaveAnswer(questionId, answerValue, durations[questionId]);
             updateQuestionItemStatus(questionId, true);
             document.getElementById('next-btn').disabled = false;
         }, 1000));
@@ -661,6 +750,40 @@ document.querySelectorAll('textarea[name="answer"]').forEach(textarea => {
                 clearInterval(saveInterval);
                 clearInterval(updateTimerInterval);
 
+                // Capture current question's answer before submitting
+                const currentQuestionId = document.getElementById('current-question-id').value;
+                const currentQuestionType = document.getElementById('current-question-type').value;
+                
+                console.log('Submitting exam - Current question type:', currentQuestionType);
+                
+                // Save the current answer if it exists
+                if (currentQuestionType === 'esai') {
+                    const essayTextarea = document.getElementById('essay-answer');
+                    if (essayTextarea && essayTextarea.value.trim()) {
+                        answers[currentQuestionId] = {
+                            type: 'esai',
+                            answer: essayTextarea.value.trim()
+                        };
+                        console.log('Captured essay answer:', essayTextarea.value.trim());
+                    }
+                } else if (currentQuestionType === 'pilihan_ganda') {
+                    const selectedOption = document.querySelector('input[name="answer"]:checked');
+                    if (selectedOption) {
+                        answers[currentQuestionId] = {
+                            type: 'pilihan_ganda',
+                            answer: selectedOption.value
+                        };
+                    }
+                } else if (currentQuestionType === 'benar_salah') {
+                    const selectedOption = document.querySelector('input[name="answer"]:checked');
+                    if (selectedOption) {
+                        answers[currentQuestionId] = {
+                            type: 'benar_salah',
+                            answer: selectedOption.value
+                        };
+                    }
+                }
+
                 // Update durations one last time
                 const currentTime = Math.floor((Date.now() - startTime) / 1000);
 
@@ -670,15 +793,18 @@ document.querySelectorAll('textarea[name="answer"]').forEach(textarea => {
                     }
                 });
 
+                console.log('Final answers:', answers);
+                console.log('Final durations:', durations);
+
                 // Store data in hidden form fields
                 document.getElementById('answers-data').value = JSON.stringify(answers);
                 document.getElementById('durations-data').value = JSON.stringify(durations);
 
-                // Submit form
-                document.getElementById('exam-form').submit();
+                // Show submitting notification
+                showSubmittingNotification();
 
-                // Redirect to finish page
-                window.location.href = `/participant/exams/finish/${bankSoalId}`;
+                // Submit form (the backend will handle the redirect)
+                document.getElementById('exam-form').submit();
             }
 
             function showSubmittingNotification() {
@@ -718,4 +844,5 @@ document.querySelectorAll('textarea[name="answer"]').forEach(textarea => {
             }
         });
     </script>
+@endif
 @endsection

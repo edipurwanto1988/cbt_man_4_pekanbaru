@@ -10,6 +10,7 @@ use App\Models\PretestPeserta;
 use App\Models\PretestSoalTimer;
 use App\Models\PretestHasil;
 use App\Models\PosttestPeserta;
+use App\Models\PosttestLog;
 use App\Models\PosttestCheatLog;
 use App\Models\PertanyaanSoal;
 use App\Models\Siswa;
@@ -648,21 +649,26 @@ public function unblockParticipant(Request $request)
      */
     public function getPretestParticipants($sessionId)
     {
-       
-
         $participants = PretestPeserta::where('session_id', $sessionId)
             ->with('siswa')
             ->get()
-            ->map(function ($participant) {
+            ->map(function ($participant) use ($sessionId) {
+                // Manually fetch the pretest hasil for this participant
+                $hasil = PretestHasil::where('session_id', $sessionId)
+                    ->where('nisn', $participant->nisn)
+                    ->first();
+
                 return [
                     'id' => $participant->id,
                     'nisn' => $participant->nisn,
                     'nama_siswa' => $participant->siswa->nama_siswa ?? 'Unknown',
                     'avatar_url' => $participant->siswa->foto ? asset('storage/uploads/siswa/' . $participant->siswa->foto) : 'https://ui-avatars.com/api/?name=' . urlencode($participant->siswa->nama_siswa ?? 'Unknown') . '&background=6366f1&color=ffffff&size=48',
                     'status' => $participant->status,
-                    'skor_total' => 0, // Will be updated during the test
+                    'skor_total' => $hasil ? $hasil->total_poin : 0,
                 ];
-            });
+            })
+            ->sortByDesc('skor_total')
+            ->values();
 
         return response()->json([
             'success' => true,
@@ -1053,6 +1059,51 @@ public function unblockParticipant(Request $request)
     {
         $bankSoal = BankSoal::findOrFail($bankSoalId);
         
+        // Get all participants who have submitted answers
+        $participants = PosttestPeserta::where('bank_soal_id', $bankSoalId)
+            ->with('siswa')
+            ->get();
+        
+        foreach ($participants as $participant) {
+            // Get all logs for this participant
+            $logs = PosttestLog::where('bank_soal_id', $bankSoalId)
+                ->where('nisn', $participant->nisn)
+                ->get();
+            
+            if ($logs->isEmpty()) {
+                continue; // Skip if no logs
+            }
+            
+            // Calculate results
+            $totalBenar = $logs->where('is_benar', 1)->count();
+            $totalSalah = $logs->where('is_benar', 0)->whereNotNull('jawaban_pilihan')->count();
+            $totalKosong = $logs->whereNull('jawaban_pilihan')->whereNull('jawaban_esai')->count();
+            $totalSkor = $logs->sum('skor');
+            
+            // Calculate total duration
+            $totalDurasi = $logs->sum('durasi_detik');
+            
+            // Calculate final score (nilai_akhir)
+            // The total score is already the final score (sum of all question scores)
+            $nilaiAkhir = $totalSkor;
+            
+            // Update or create posttest_hasil
+            PosttestHasil::updateOrCreate(
+                [
+                    'bank_soal_id' => $bankSoalId,
+                    'nisn' => $participant->nisn,
+                ],
+                [
+                    'total_benar' => $totalBenar,
+                    'total_salah' => $totalSalah,
+                    'total_kosong' => $totalKosong,
+                    'total_poin' => $totalSkor,
+                    'nilai_akhir' => round($nilaiAkhir, 2),
+                    'waktu_pengerjaan' => $totalDurasi, // Store as integer seconds
+                ]
+            );
+        }
+        
         // Get all posttest results for this bank soal with participant data
         $results = DB::table('posttest_hasil')
             ->leftJoin('posttest_peserta', function($join) use ($bankSoalId) {
@@ -1083,5 +1134,105 @@ public function unblockParticipant(Request $request)
             });
         
         return view('admin.jadwal_ujian.posttest-hasil', compact('bankSoal', 'results'));
+    }
+
+    /**
+     * Show detailed answers for a specific participant
+     */
+    public function posttestDetailJawaban($bankSoalId, $nisn)
+    {
+        $bankSoal = BankSoal::with('mataPelajaran')->findOrFail($bankSoalId);
+        $siswa = Siswa::where('nisn', $nisn)->firstOrFail();
+        
+        // Get participant data
+        $participant = PosttestPeserta::where('bank_soal_id', $bankSoalId)
+            ->where('nisn', $nisn)
+            ->first();
+        
+        // Get hasil
+        $hasil = PosttestHasil::where('bank_soal_id', $bankSoalId)
+            ->where('nisn', $nisn)
+            ->first();
+        
+        // Get all questions with participant's answers from logs
+        $questions = PertanyaanSoal::where('bank_soal_id', $bankSoalId)
+            ->orderBy('id')
+            ->get()
+            ->map(function($question) use ($nisn, $bankSoalId) {
+                // Get the log for this question
+                $log = PosttestLog::where('bank_soal_id', $bankSoalId)
+                    ->where('nisn', $nisn)
+                    ->where('pertanyaan_id', $question->id)
+                    ->first();
+                
+                $question->log = $log;
+                return $question;
+            });
+        
+        return view('admin.jadwal_ujian.posttest-detail-jawaban', compact('bankSoal', 'siswa', 'participant', 'hasil', 'questions'));
+    }
+    
+    /**
+     * Save essay score
+     */
+    public function saveEssayScore(Request $request)
+    {
+        try {
+            $request->validate([
+                'question_id' => 'required|integer',
+                'bank_soal_id' => 'required|integer',
+                'nisn' => 'required|string',
+                'score' => 'required|numeric|min:0'
+            ]);
+            
+            // Update the score in posttest_log
+            $log = PosttestLog::where('bank_soal_id', $request->bank_soal_id)
+                ->where('nisn', $request->nisn)
+                ->where('pertanyaan_id', $request->question_id)
+                ->first();
+            
+            if (!$log) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Log tidak ditemukan'
+                ], 404);
+            }
+            
+            $log->skor = $request->score;
+            $log->save();
+            
+            // Recalculate total score and update posttest_hasil
+            $allLogs = PosttestLog::where('bank_soal_id', $request->bank_soal_id)
+                ->where('nisn', $request->nisn)
+                ->get();
+            
+            $totalSkor = $allLogs->sum('skor');
+            $totalBenar = $allLogs->where('is_benar', 1)->count();
+            $totalSalah = $allLogs->where('is_benar', 0)->whereNotNull('jawaban_pilihan')->count();
+            
+            PosttestHasil::updateOrCreate(
+                [
+                    'bank_soal_id' => $request->bank_soal_id,
+                    'nisn' => $request->nisn,
+                ],
+                [
+                    'total_benar' => $totalBenar,
+                    'total_salah' => $totalSalah,
+                    'nilai_akhir' => $totalSkor,
+                ]
+            );
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Skor berhasil disimpan',
+                'new_total' => $totalSkor
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

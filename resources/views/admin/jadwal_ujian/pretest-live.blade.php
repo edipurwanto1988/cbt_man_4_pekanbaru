@@ -90,7 +90,7 @@
                                 </div>
                                 <div class="text-right">
                                     <p class="text-sm font-medium text-gray-600 dark:text-gray-300">
-                                        {{ $participant->pretestHasil->total_poin ?? 0 }} poin
+                                        {{ $participant->pretestHasil->total_skor ?? 0 }} poin
                                     </p>
                                 </div>
                             </div>
