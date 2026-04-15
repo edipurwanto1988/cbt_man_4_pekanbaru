@@ -41,10 +41,12 @@ class SiswaController extends Controller
             'jenis_kelamin' => 'required|in:L,P',
             'email' => 'nullable|email|max:255|unique:siswa',
             'password' => 'required|string|min:6',
+            'status' => 'nullable|in:Pending,Lulus,Tidak Lulus',
         ]);
 
         $data = $request->all();
         $data['password'] = bcrypt($data['password']);
+        $data['status'] = $request->status ?? 'Pending';
 
         Siswa::create($data);
 
@@ -79,6 +81,7 @@ class SiswaController extends Controller
             'jenis_kelamin' => 'required|in:L,P',
             'email' => 'nullable|email|max:255|unique:siswa,email,' . $siswa->nisn . ',nisn',
             'password' => 'nullable|string|min:6',
+            'status' => 'nullable|in:Pending,Lulus,Tidak Lulus',
         ]);
 
         $data = $request->all();

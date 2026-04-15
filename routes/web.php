@@ -3,6 +3,7 @@
 
 use App\Http\Controllers\HistoryController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\GuruController;
@@ -235,7 +236,8 @@ Route::prefix('participant')->name('participant.')->group(function () {
     
     Route::middleware('auth:siswa')->group(function () {
         Route::get('/', function () {
-            return view('participant.dashboard');
+            $siswa = \App\Models\Siswa::find(Auth::guard('siswa')->user()->nisn);
+            return view('participant.dashboard', compact('siswa'));
         })->name('dashboard');
         
         Route::post('/logout', [ParticipantAuthController::class, 'logout'])->name('logout');

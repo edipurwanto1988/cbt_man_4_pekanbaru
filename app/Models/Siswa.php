@@ -49,6 +49,7 @@ class Siswa extends Authenticatable
         'jenis_kelamin',
         'email',
         'password',
+        'status',
     ];
 
     /**

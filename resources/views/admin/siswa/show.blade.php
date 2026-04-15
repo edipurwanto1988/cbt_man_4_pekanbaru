@@ -37,6 +37,18 @@
                     <span class="ml-2 text-gray-900 dark:text-white">{{ $siswa->email ?: '-' }}</span>
                 </div>
                 <div>
+                    <span class="text-gray-500 dark:text-gray-400">Status:</span>
+                    <span class="ml-2 text-gray-900 dark:text-white">
+                        @if($siswa->status == 'Lulus')
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">Lulus</span>
+                        @elseif($siswa->status == 'Tidak Lulus')
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">Tidak Lulus</span>
+                        @else
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">Pending</span>
+                        @endif
+                    </span>
+                </div>
+                <div>
                     <span class="text-gray-500 dark:text-gray-400">Dibuat:</span>
                     <span class="ml-2 text-gray-900 dark:text-white">{{ $siswa->created_at->format('d M Y H:i') }}</span>
                 </div>

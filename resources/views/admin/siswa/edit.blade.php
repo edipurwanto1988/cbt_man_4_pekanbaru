@@ -73,6 +73,22 @@
                 @enderror
             </div>
 
+            <!-- Status Field -->
+            <div>
+                <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Status Kelulusan
+                </label>
+                <select id="status" name="status"
+                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-800 dark:text-white">
+                    <option value="Pending" {{ old('status', $siswa->status) == 'Pending' ? 'selected' : '' }}>Pending</option>
+                    <option value="Lulus" {{ old('status', $siswa->status) == 'Lulus' ? 'selected' : '' }}>Lulus</option>
+                    <option value="Tidak Lulus" {{ old('status', $siswa->status) == 'Tidak Lulus' ? 'selected' : '' }}>Tidak Lulus</option>
+                </select>
+                @error('status')
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                @enderror
+            </div>
+
             <!-- Email Field -->
             <div>
                 <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

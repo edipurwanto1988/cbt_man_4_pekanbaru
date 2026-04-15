@@ -39,6 +39,23 @@
 <!-- Main Content -->
 <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
     <div class="px-4 py-6 sm:px-0">
+        <!-- Status Kelulusan -->
+        @if(isset($siswa) && $siswa->status == 'Lulus')
+        <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-md mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="ri-checkbox-circle-line text-green-500 text-2xl"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-lg font-medium text-green-800">Selamat anda dinyatakan LULUS</h3>
+                    <div class="mt-2 text-sm text-green-700">
+                        <p>Selamat! Anda telah dinyatakan lulus dalam seleksi penerimaan siswa baru.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
         <!-- Student Information -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
